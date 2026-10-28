@@ -97,7 +97,7 @@ img.pixel { image-rendering: pixelated; display: block; }
 .drunk-hic {
   position: fixed; left: 50%; top: calc(env(safe-area-inset-top) + 56px); z-index: 60; pointer-events: none;
   padding: 6px 10px; background: #fff; color: var(--color-ink); border: 3px solid var(--color-ink);
-  font: 400 14px/16px var(--font-pix); animation: hic 1.2s steps(6) both;
+  font: 400 14px/16px var(--font-pix); animation: hic 2.5s steps(6) both;
 }
 @keyframes hic {
   0% { opacity: 0; transform: translate(-50%, 6px); }
