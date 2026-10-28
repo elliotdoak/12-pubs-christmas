@@ -47,7 +47,7 @@ export function DrunkProvider({ children }: { children: ReactNode }) {
       {level === 3 && <div className="drunk-vignette" aria-hidden="true" />}
       {hic > 0 && level > 0 && (
         <div key={hic} className="drunk-hic" aria-hidden="true">
-          HIC!
+          {hic === 1 ? 'woah steady big man!' : hic === 2 ? 'Christ you are so drunk!!' : 'Thats it, someone phone him a taxi'}
         </div>
       )}
     </Ctx.Provider>
