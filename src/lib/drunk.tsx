@@ -4,6 +4,16 @@ import { load, save } from './storage'
 export const DRUNK_LEVELS = ['OFF', 'TIPSY', 'STEAMING', 'BLOOTERED'] as const
 export type DrunkLevel = 0 | 1 | 2 | 3
 
+/**
+ * Three messages per level. Each time you reach a level you get the next one in its list,
+ * so you see all three before any repeats. Edit freely.
+ */
+const LEVEL_MESSAGES: Record<1 | 2 | 3, string[]> = {
+  1: ['Woah easy big man', "Steady on, it's barely lunchtime", 'Someone found the free bar'],
+  2: ['Christ you are drunk!!', 'Who gave you the shot tray?', 'Is that three of you or two?'],
+  3: ['Right, someone phone him a taxi', 'Sleepy Jail is calling your name', 'Your maw would be raging'],
+}
+
 interface DrunkCtx {
   level: DrunkLevel
   cycle: () => void
@@ -20,20 +30,26 @@ const Ctx = createContext<DrunkCtx | null>(null)
  */
 export function DrunkProvider({ children }: { children: ReactNode }) {
   const [level, setLevel] = useState<DrunkLevel>(() => load('drunk', 0 as DrunkLevel))
-  const [hic, setHic] = useState(0)
+  const [bubble, setBubble] = useState<{ key: number; text: string } | null>(null)
+  const [seen, setSeen] = useState<Record<number, number>>({})
+  const say = (text: string) => setBubble((b) => ({ key: (b?.key ?? 0) + 1, text }))
 
   const cycle = () => {
     const next = ((level + 1) % 4) as DrunkLevel
     setLevel(next)
     save('drunk', next)
-    if (next) setHic((h) => h + 1)
+    if (next) {
+      const i = seen[next] ?? 0
+      say(LEVEL_MESSAGES[next][i % 3])
+      setSeen((s) => ({ ...s, [next]: i + 1 }))
+    }
     navigator.vibrate?.(next ? [30, 60, 30] : 20)
   }
 
   // At BLOOTERED, the odd spontaneous hiccup
   useEffect(() => {
     if (level !== 3) return
-    const id = setInterval(() => setHic((h) => h + 1), 20_000 + Math.random() * 15_000)
+    const id = setInterval(() => say('HIC!'), 20_000 + Math.random() * 15_000)
     return () => clearInterval(id)
   }, [level])
 
@@ -47,9 +63,9 @@ export function DrunkProvider({ children }: { children: ReactNode }) {
         <div id="overlay-root" />
       </div>
       {level === 3 && <div className="drunk-vignette" aria-hidden="true" />}
-      {hic > 0 && level > 0 && (
-        <div key={hic} className="drunk-hic" aria-hidden="true">
-          HIC!
+      {bubble && level > 0 && (
+        <div key={bubble.key} className="drunk-hic" role="status">
+          {bubble.text}
         </div>
       )}
     </Ctx.Provider>
