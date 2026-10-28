@@ -21,6 +21,8 @@ export interface Costume {
   /** Has this costume been confirmed for this year? */
   confirmed: boolean
   note?: string
+  /** Photo of the original, e.g. '/hof/ecto.jpg' (put the file in public/hof/) */
+  photo?: string
 }
 
 export const COSTUMES: Record<CostumeKey, Costume> = {

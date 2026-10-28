@@ -1,5 +1,4 @@
 import { NavLink } from 'react-router-dom'
-import { useSession } from '../lib/session'
 import { DRUNK_LEVELS, useDrunk } from '../lib/drunk'
 
 const ICONS = {
@@ -8,20 +7,21 @@ const ICONS = {
   scores: 'M2 0h8v5h-8zM0 1h2v1h-2zM10 1h2v1h-2zM0 2h1v2h-1zM11 2h1v2h-1zM1 4h1v1h-1zM10 4h1v1h-1zM3 5h6v1h-6zM5 6h2v2h-2zM3 8h6v2h-6z',
   gm: 'M5 0h2v2h-2zM2 2h8v2h-8zM1 4h10v4h-10zM3 8h6v2h-6z',
   photos: 'M4 0h4v2h4v8h-12v-8h4zM5 4v4h2v-4zM4 5h4v2h-4z',
+  fame: 'M5 1h2v1h-2zM4 2h4v2h-4zM3 4h6v3h-6zM8 0h3v3h-3zM1 7h10v3h-10z',
   pint: 'M2 0h7v2h-7zM2 2h1v7h-1zM8 2h1v7h-1zM3 4h5v5h-5zM9 3h2v1h-2zM10 4h1v3h-1zM9 7h2v1h-2zM2 9h7v1h-7z',
 }
 
 /** Bottom tab bar, as in the prototype. */
 export function TabBar() {
-  const { isGm } = useSession()
   const { level, cycle } = useDrunk()
   const tabs: [string, string, keyof typeof ICONS][] = [
     ['/lobby', 'CREW', 'players'],
     ['/map', 'MAP', 'map'],
     ['/scores', 'SCORES', 'scores'],
     ['/photos', 'PHOTOS', 'photos'],
+    ['/costumes', 'FAME', 'fame'],
   ]
-  if (isGm) tabs.push(['/gm', 'GM', 'gm'])
+  // The Game Master reaches the control room from the CREW screen, which keeps the bar to six tabs
 
   return (
     <nav

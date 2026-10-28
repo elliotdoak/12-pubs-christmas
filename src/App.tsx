@@ -15,6 +15,7 @@ import Gm from './screens/Gm'
 import MapScreen from './screens/MapScreen'
 import Scores from './screens/Scores'
 import Photos from './screens/Photos'
+import Costumes from './screens/Costumes'
 
 export default function App() {
   return (
@@ -31,6 +32,7 @@ export default function App() {
           <Route path="/map" element={<Ready needPlayer><MapScreen /></Ready>} />
           <Route path="/scores" element={<Ready needPlayer><Scores /></Ready>} />
           <Route path="/photos" element={<Ready needPlayer><Photos /></Ready>} />
+          <Route path="/costumes" element={<Ready needPlayer><Costumes /></Ready>} />
           <Route path="/gm" element={<Ready><Gm /></Ready>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

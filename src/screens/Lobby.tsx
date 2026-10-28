@@ -11,7 +11,7 @@ import { COSTUMES, PLAYERS, sprite, type CostumeKey } from '../data/crawl'
 
 export default function Lobby() {
   const nav = useNavigate()
-  const { playerId, refresh } = useSession()
+  const { playerId, isGm, refresh } = useSession()
   const { players } = usePlayers(20_000)
   const [loc, setLoc] = useState<PermState>('prompt')
   const [showCostume, setShowCostume] = useState(false)
@@ -105,7 +105,7 @@ export default function Lobby() {
           NOT {me.name.toUpperCase()}? SWITCH PLAYER
         </button>
         <Link to="/gm" className="btn-text">
-          GAME MASTER LOGIN
+          {isGm ? 'GAME MASTER CONTROL ROOM ▸' : 'GAME MASTER LOGIN'}
         </Link>
       </div>
 
