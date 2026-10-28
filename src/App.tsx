@@ -1,49 +1,58 @@
-import { EVENT, PLAYERS, sprite } from './data/crawl'
-import { useCountdown } from './hooks/useCountdown'
+import type { ReactNode } from 'react'
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { SessionProvider, useSession } from './lib/session'
+import { load } from './lib/storage'
+import { Logo, Screen } from './components/ui'
+import Install from './screens/Install'
+import Who from './screens/Who'
+import Pin from './screens/Pin'
+import Lobby from './screens/Lobby'
+import Gm from './screens/Gm'
 
-// Placeholder home screen to prove the setup end to end.
-// Next up: install walkthrough, player picker, lobby countdown.
 export default function App() {
-  const t = useCountdown(EVENT.startsAt)
-  const units: [string, number][] = [
-    ['DAYS', t.days],
-    ['HRS', t.hours],
-    ['MINS', t.minutes],
-    ['SECS', t.seconds],
-  ]
-
   return (
-    <main className="mx-auto flex min-h-full max-w-md flex-col">
-      <div className="knit-band" aria-hidden="true" />
+    <SessionProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<Gate />} />
+          <Route path="/install" element={<Install />} />
+          <Route path="/who" element={<Ready><Who /></Ready>} />
+          <Route path="/pin/:id" element={<Ready><Pin /></Ready>} />
+          <Route path="/lobby" element={<Ready needPlayer><Lobby /></Ready>} />
+          <Route path="/gm" element={<Ready><Gm /></Ready>} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </BrowserRouter>
+    </SessionProvider>
+  )
+}
 
-      <header className="flex flex-col items-center gap-3 px-4 pt-8 text-center">
-        <img src="/sprites/logo.svg" alt="" width={48} height={48} className="pixel" />
-        <p className="font-pix text-[10px] text-gold">{EVENT.presentedBy.toUpperCase()} PRESENTS</p>
-        <h1 className="font-pix text-lg leading-relaxed">12 PUBS OF CHRISTMAS</h1>
-        <p className="font-pix text-[10px] text-cream/70">{EVENT.edition.toUpperCase()} · SAT 28 NOV · 12.30PM</p>
-      </header>
+/** Sends each phone to the right place: install → pick player → lobby. */
+function Gate() {
+  const { ready, error, playerId } = useSession()
+  if (!ready) return <Splash />
+  if (error) return <Splash message={error} />
+  if (!load('setupDone', false)) return <Navigate to="/install" replace />
+  if (!playerId) return <Navigate to="/who" replace />
+  return <Navigate to="/lobby" replace />
+}
 
-      <section aria-label="Countdown to the crawl" className="mx-4 mt-8 grid grid-cols-4 gap-2">
-        {units.map(([label, v]) => (
-          <div key={label} className="border-4 border-ink bg-red py-3 text-center shadow-[4px_4px_0_var(--color-ink)]">
-            <div className="font-pix text-xl text-gold" aria-live={label === 'SECS' ? 'off' : 'polite'}>
-              {String(v).padStart(2, '0')}
-            </div>
-            <div className="mt-2 font-pix text-[8px]">{label}</div>
-          </div>
-        ))}
-      </section>
+/** Waits for the session; optionally requires a claimed player. */
+function Ready({ children, needPlayer = false }: { children: ReactNode; needPlayer?: boolean }) {
+  const { ready, error, playerId } = useSession()
+  if (!ready) return <Splash />
+  if (error) return <Splash message={error} />
+  if (needPlayer && !playerId) return <Navigate to="/who" replace />
+  return <>{children}</>
+}
 
-      <section aria-label="Players" className="mx-4 mt-8 grid grid-cols-4 gap-3 pb-10">
-        {PLAYERS.map((p) => (
-          <figure key={p.id} className="flex flex-col items-center gap-1">
-            <img src={sprite.avatar(p.id)} alt="" width={48} height={48} className="pixel" />
-            <figcaption className="font-pix text-[8px]">{p.name.toUpperCase()}</figcaption>
-          </figure>
-        ))}
-      </section>
-
-      <div className="knit-band mt-auto" aria-hidden="true" />
-    </main>
+function Splash({ message }: { message?: string }) {
+  return (
+    <Screen className="items-center justify-center gap-6 px-8 text-center">
+      <Logo size={72} />
+      <p className="m-0 font-pix text-[11px] leading-[18px] text-yolk" role={message ? 'alert' : 'status'}>
+        {message ?? <span className="anim-blink">LOADING…</span>}
+      </p>
+    </Screen>
   )
 }
