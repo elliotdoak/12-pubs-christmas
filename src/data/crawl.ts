@@ -12,7 +12,7 @@ export const EVENT = {
 
 export type CostumeKey =
   | 'ecto' | 'tree' | 'stocking' | 'schememaw' | 'snowman' | 'boy'
-  | 'goth' | 'mistletoe' | 'chocorange' | 'pilot' | 'mystery'
+  | 'goth' | 'mistletoe' | 'chocorange' | 'pilot'
 
 export interface Costume {
   key: CostumeKey
@@ -34,10 +34,9 @@ export const COSTUMES: Record<CostumeKey, Costume> = {
   mistletoe: { key: 'mistletoe', name: 'Mistletoe and Wine', year: 2023, confirmed: false }, // [TK] confirm Grant
   chocorange: { key: 'chocorange', name: "Terry's Chocolate Orange", year: 2024, confirmed: true },
   pilot: { key: 'pilot', name: 'Flight Club', year: 2025, confirmed: true },
-  mystery: { key: 'mystery', name: 'No costume yet', year: null, confirmed: false }, // [TK] Div
 }
 
-export type PlayerId = 'KY' | 'RE' | 'ST' | 'DE' | 'HA' | 'GR' | 'EL' | 'GT' | 'CA' | 'HI' | 'DV'
+export type PlayerId = 'KY' | 'RE' | 'ST' | 'DE' | 'HA' | 'GR' | 'EL' | 'GT' | 'CA' | 'HI'
 
 export interface Player {
   id: PlayerId
@@ -56,13 +55,12 @@ export const PLAYERS: Player[] = [
   { id: 'GT', name: 'Grant', costume: 'mistletoe' },
   { id: 'CA', name: 'Cal', costume: 'chocorange' },
   { id: 'HI', name: 'Hicksy', costume: 'pilot' },
-  { id: 'DV', name: 'Div', costume: 'mystery' },
 ]
 
 /** Handcuff groups for Blackfriars and O'Neills. */
 export const PAIRS: PlayerId[][] = [
   ['GR', 'HI', 'DE'],
-  ['HA', 'DV'],
+  ['HA'], // [TK] Div dropped out: who does Hammy pair with?
   ['EL', 'ST'],
   ['KY', 'RE'],
 ]

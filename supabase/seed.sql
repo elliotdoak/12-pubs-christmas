@@ -11,8 +11,7 @@ insert into public.players (id, name, costume, pair_group) values
   ('EL', 'Elz',    'goth',       3),
   ('GT', 'Grant',  'mistletoe',  null),
   ('CA', 'Cal',    'chocorange', null),
-  ('HI', 'Hicksy', 'pilot',      1),
-  ('DV', 'Div',    'mystery',    2);
+  ('HI', 'Hicksy', 'pilot',      1);
 
 insert into public.pubs (n, name, arrive_at, leave_at, challenge, forfeit) values
   (1,  'Old College Bar', '2026-11-28 12:30+00', '2026-11-28 12:40+00', 'Last to down a can of beer loses', null),

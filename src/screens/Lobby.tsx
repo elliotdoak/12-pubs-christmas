@@ -46,7 +46,7 @@ export default function Lobby() {
       <div className="flex flex-col items-center gap-3 px-5 pb-4 pt-5">
         <Brand presents />
         <Title />
-        <div className="text-[16px] font-medium text-blush">10th anniversary · 11 players · 0 dignity</div>
+        <div className="text-[16px] font-medium text-blush">10th anniversary · {PLAYERS.length} players · 0 dignity</div>
       </div>
 
       <div className="flex flex-col gap-3 px-5 pb-4">
@@ -80,7 +80,7 @@ export default function Lobby() {
       <section className="panel mx-[14px] mb-4 flex flex-col" aria-label="Players">
         <div className="flex items-center justify-between bg-ink px-3 py-[10px]">
           <b className="font-pix text-[12px] font-normal text-yolk">PLAYERS</b>
-          <span className="font-pix text-[9px] text-white">{joined}/11 JOINED</span>
+          <span className="font-pix text-[9px] text-white">{joined}/{PLAYERS.length} JOINED</span>
         </div>
         <ul className="m-0 list-none px-3 py-0">
           {rows.map((p) => (

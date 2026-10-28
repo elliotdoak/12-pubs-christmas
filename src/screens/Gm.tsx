@@ -81,7 +81,7 @@ function ControlRoom() {
       </div>
 
       <div className="mx-[14px] mb-3 grid grid-cols-2 gap-2">
-        <div className="bg-ink p-3 font-pix text-[9px] text-white">JOINED <em className="not-italic text-yolk">{joined}/11</em></div>
+        <div className="bg-ink p-3 font-pix text-[9px] text-white">JOINED <em className="not-italic text-yolk">{joined}/{players?.length ?? 10}</em></div>
         <div className="bg-ink p-3 font-pix text-[9px] text-white">GAME <em className="not-italic text-yolk">PRE-GAME</em></div>
       </div>
 

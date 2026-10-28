@@ -53,6 +53,6 @@ supabase/seed.sql    players and pubs
 ## Open questions
 
 - [TK] Pub coordinates for geofencing (`lat`/`lng` in `src/data/crawl.ts` and `supabase/seed.sql`)
-- [TK] Div's costume
+- [TK] Hammy's handcuff partner, now that Div can't make it
 - [TK] Grant's costume confirmation
 - [TK] Felsons leave time (7.40pm) overlaps Supercube arrival (7.30pm)
