@@ -1,6 +1,8 @@
 import type { ReactNode } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { SessionProvider, useSession } from './lib/session'
+import { GameProvider } from './lib/game'
+import { isGameDay } from './data/crawl'
 import { load } from './lib/storage'
 import { Logo, Screen } from './components/ui'
 import Install from './screens/Install'
@@ -8,10 +10,12 @@ import Who from './screens/Who'
 import Pin from './screens/Pin'
 import Lobby from './screens/Lobby'
 import Gm from './screens/Gm'
+import MapScreen from './screens/MapScreen'
 
 export default function App() {
   return (
     <SessionProvider>
+      <GameProvider>
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Gate />} />
@@ -19,10 +23,12 @@ export default function App() {
           <Route path="/who" element={<Ready><Who /></Ready>} />
           <Route path="/pin/:id" element={<Ready><Pin /></Ready>} />
           <Route path="/lobby" element={<Ready needPlayer><Lobby /></Ready>} />
+          <Route path="/map" element={<Ready needPlayer><MapScreen /></Ready>} />
           <Route path="/gm" element={<Ready><Gm /></Ready>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>
+      </GameProvider>
     </SessionProvider>
   )
 }
@@ -34,7 +40,7 @@ function Gate() {
   if (error) return <Splash message={error} />
   if (!load('setupDone', false)) return <Navigate to="/install" replace />
   if (!playerId) return <Navigate to="/who" replace />
-  return <Navigate to="/lobby" replace />
+  return <Navigate to={isGameDay() ? '/map' : '/lobby'} replace />
 }
 
 /** Waits for the session; optionally requires a claimed player. */

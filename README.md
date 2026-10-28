@@ -42,9 +42,9 @@ supabase/seed.sql    players and pubs
 ## Build order
 
 1. ~~Scaffold and deploy~~
-2. Supabase project, schema and seed data
-3. Install walkthrough, player picker, lobby countdown
-4. Map, geolocation check-in, per-player unlocks
+2. ~~Supabase project, schema and seed data~~
+3. ~~Install walkthrough, player picker, lobby countdown~~
+4. ~~Map, geolocation check-in, per-player unlocks~~
 5. Game Master page
 6. Leaderboard, photo wall, Hall of Fame
 7. Push notifications, 5-minute alarm, Sleepy Jail sweep
@@ -52,7 +52,7 @@ supabase/seed.sql    players and pubs
 
 ## Open questions
 
-- [TK] Pub coordinates for geofencing (`lat`/`lng` in `src/data/crawl.ts` and `supabase/seed.sql`)
+- [TK] Confirm the Felsons and Supercube map pins (estimated from their addresses) in `src/data/crawl.ts`
 - [TK] Hammy's handcuff partner, now that Div can't make it
 - [TK] Grant's costume confirmation
 - [TK] Felsons leave time (7.40pm) overlaps Supercube arrival (7.30pm)

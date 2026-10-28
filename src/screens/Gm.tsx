@@ -5,7 +5,10 @@ import { PinPad } from '../components/PinPad'
 import { usePlayers } from '../hooks/usePlayers'
 import { CLAIM_MESSAGES, claimGm, gmResetPin, releaseGm } from '../lib/api'
 import { useSession } from '../lib/session'
-import { COSTUMES, type PlayerId } from '../data/crawl'
+import { COSTUMES, PLAYERS, pubByN, type PlayerId } from '../data/crawl'
+import { TabBar } from '../components/TabBar'
+import { useGameCtx } from '../lib/game'
+import { supabase } from '../lib/supabase'
 
 export default function Gm() {
   const { isGm } = useSession()
@@ -36,6 +39,80 @@ function GmLogin() {
         <PinPad onComplete={onComplete} />
       </div>
     </Screen>
+  )
+}
+
+/** Manual check-ins (the fallback when a phone dies), practice mode and a test-data wipe. */
+function CheckinControls({ flash }: { flash: (m: string) => void }) {
+  const { game, practice, setPractice } = useGameCtx()
+  const [wipe, setWipe] = useState(false)
+
+  const bump = async (id: PlayerId, name: string) => {
+    const n = game.lastPub[id] + 1
+    if (!supabase || n > 12) return
+    const { error } = await supabase.from('checkins').upsert(
+      { player_id: id, pub_n: n, source: 'gm', by_player: null },
+      { onConflict: 'player_id,pub_n', ignoreDuplicates: true },
+    )
+    await game.reload()
+    flash(error ? 'COULD NOT CHECK IN' : `${name.toUpperCase()} → ${pubByN(n).name.toUpperCase()}`)
+  }
+
+  const undo = async (id: PlayerId, name: string) => {
+    const n = game.lastPub[id]
+    if (!supabase || !n) return
+    const { error } = await supabase.from('checkins').delete().eq('player_id', id).eq('pub_n', n)
+    await game.reload()
+    flash(error ? 'COULD NOT UNDO' : `${name.toUpperCase()} BACK TO PUB ${n - 1}`)
+  }
+
+  const wipeAll = async () => {
+    if (!supabase) return
+    const { error } = await supabase.from('checkins').delete().gte('pub_n', 1)
+    setWipe(false)
+    await game.reload()
+    flash(error ? 'WIPE FAILED' : 'ALL CHECK-INS WIPED')
+  }
+
+  return (
+    <>
+      <section className="mx-[14px] mb-6 border-4 border-ink bg-wool text-ink" aria-label="Check-ins">
+        <div className="bg-ink px-3 py-2 font-pix text-[10px] text-yolk">CHECK-INS · MANUAL OVERRIDE</div>
+        <ul className="m-0 list-none p-0">
+          {PLAYERS.map((p) => {
+            const n = game.lastPub[p.id]
+            return (
+              <li key={p.id} className="flex items-center gap-3 border-b-2 border-dashed border-[#CFC6B6] px-3 py-2 last:border-0">
+                <AvatarBox id={p.id} size={36} />
+                <div className="min-w-0 flex-1">
+                  <b className="text-[16px]">{p.name}</b>
+                  <div className="text-[13px] text-muted">{n ? `Pub ${n} · ${pubByN(n).name}` : 'Not started'}</div>
+                </div>
+                <button type="button" disabled={!n} onClick={() => undo(p.id, p.name)} className="border-2 border-ink bg-white px-2 py-1 font-pix text-[8px] disabled:opacity-40">UNDO</button>
+                <button type="button" disabled={n >= 12} onClick={() => bump(p.id, p.name)} className="border-2 border-ink bg-pine px-2 py-1 font-pix text-[8px] text-white disabled:opacity-40">+1 PUB</button>
+              </li>
+            )
+          })}
+        </ul>
+      </section>
+
+      <section className="mx-[14px] mb-6 flex flex-col gap-3 border-4 border-ink bg-wool p-3 text-ink" aria-label="Testing">
+        <div className="font-pix text-[10px]">TESTING</div>
+        <label className="flex items-center gap-3 text-[16px]">
+          <input type="checkbox" checked={practice} onChange={(e) => setPractice(e.target.checked)} className="h-5 w-5 accent-[var(--color-pine)]" />
+          Practice mode on this phone (auto check-in before game day, no time limits)
+        </label>
+        {wipe ? (
+          <div className="flex items-center gap-2">
+            <span className="flex-1 text-[15px]">Delete every check-in for everyone?</span>
+            <button type="button" onClick={wipeAll} className="border-2 border-ink bg-red px-2 py-1 font-pix text-[8px] text-white">WIPE</button>
+            <button type="button" onClick={() => setWipe(false)} className="border-2 border-ink bg-white px-2 py-1 font-pix text-[8px]">NO</button>
+          </div>
+        ) : (
+          <button type="button" onClick={() => setWipe(true)} className="self-start border-2 border-ink bg-white px-2 py-1 font-pix text-[8px]">WIPE TEST CHECK-INS</button>
+        )}
+      </section>
+    </>
   )
 }
 
@@ -112,8 +189,10 @@ function ControlRoom() {
         </ul>
       </section>
 
+      <CheckinControls flash={flash} />
+
       <p className="mx-[18px] mb-8 text-[14px] leading-[18px] text-[#B9B2A6]">
-        Check-ins, results, Sleepy Jail and announcements arrive here in the next builds.
+        Results, Sleepy Jail and announcements arrive here in the next builds.
       </p>
 
       {toast && (
@@ -121,6 +200,7 @@ function ControlRoom() {
           {toast}
         </div>
       )}
+      {playerId && <TabBar />}
     </Screen>
   )
 }

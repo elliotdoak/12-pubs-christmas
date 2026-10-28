@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Avatar, AvatarBox, Brand, EventLine, Knit, Screen, Title } from '../components/ui'
 import { Countdown } from '../components/Countdown'
+import { TabBar } from '../components/TabBar'
 import { usePlayers } from '../hooks/usePlayers'
 import { releasePlayer } from '../lib/api'
 import { useSession } from '../lib/session'
@@ -108,6 +109,7 @@ export default function Lobby() {
         </Link>
       </div>
 
+      <TabBar />
       {showCostume && <CostumeSheet costume={me.costume} onClose={() => setShowCostume(false)} />}
     </Screen>
   )
