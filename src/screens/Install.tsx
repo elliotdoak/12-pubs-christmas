@@ -202,7 +202,7 @@ function Url({ dots = false }: { dots?: boolean }) {
   return (
     <div className="m-2 flex items-center gap-1 rounded-md bg-[#EEE] px-2 py-1 text-[11px] text-muted">
       <i className="block h-2 w-2 bg-muted" />
-      <span className="flex-1">12pubs.pages.dev</span>
+      <span className="flex-1 truncate">12pubs.elliot-doak.workers.dev</span>
       {dots && <span className="bg-yolk px-1 font-bold text-ink outline-2 outline-ink">⋮</span>}
     </div>
   )

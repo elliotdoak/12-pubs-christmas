@@ -11,7 +11,7 @@ An installable web app (PWA) in an 8-bit Christmas jumper style. No app stores: 
 | Frontend | React, TypeScript, Vite, Tailwind CSS v4 |
 | Installable app | `vite-plugin-pwa` (manifest, service worker, offline cache, web push) |
 | Backend | Supabase free tier: Postgres, Realtime, Storage, Edge Functions, pg_cron |
-| Hosting | Cloudflare Pages (free), auto-deploys from GitHub |
+| Hosting | Cloudflare Workers static assets (free), auto-deploys from GitHub: https://12pubs.elliot-doak.workers.dev |
 
 ## Getting started
 
@@ -21,7 +21,7 @@ cp .env.example .env.local   # then add your Supabase URL and anon key
 npm run dev
 ```
 
-To test on a phone on the same Wi-Fi: `npm run dev -- --host`, then open the network URL. Location and notifications need HTTPS, so do proper phone testing on the Cloudflare Pages preview URL.
+To test on a phone on the same Wi-Fi: `npm run dev -- --host`, then open the network URL. Location and notifications need HTTPS, so do proper phone testing on https://12pubs.elliot-doak.workers.dev.
 
 ## Project layout
 
