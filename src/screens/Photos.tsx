@@ -68,7 +68,7 @@ export default function Photos() {
         </p>
       )}
 
-      <div className="sticky bottom-[96px] z-10 mb-2 flex justify-end px-[14px]">
+      <div style={{ bottom: 'calc(max(14px, env(safe-area-inset-bottom)) + 76px)' }} className="sticky z-10 mb-2 flex justify-end px-[14px]">
         <SnapButton
           pub={playerId ? game.lastPub[playerId] || null : null}
           className="flex items-center gap-2 border-4 border-ink bg-yolk px-4 py-3 font-pix text-[12px] text-ink shadow-[4px_4px_0_var(--color-ink)] active:translate-x-1 active:translate-y-1 active:shadow-none"

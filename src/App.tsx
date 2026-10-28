@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { SessionProvider, useSession } from './lib/session'
 import { GameProvider } from './lib/game'
 import { DrunkProvider } from './lib/drunk'
@@ -38,9 +38,25 @@ export default function App() {
         </Routes>
         </DrunkProvider>
         <Announcement />
+        <StatusBarCover />
       </BrowserRouter>
       </GameProvider>
     </SessionProvider>
+  )
+}
+
+/**
+ * On iPhone the installed app draws under a see-through status bar, so scrolled content would sit
+ * behind the clock and battery. This solid strip covers exactly the status bar area.
+ */
+function StatusBarCover() {
+  const { pathname } = useLocation()
+  return (
+    <div
+      aria-hidden="true"
+      className="pointer-events-none fixed inset-x-0 top-0 z-[65]"
+      style={{ height: 'env(safe-area-inset-top)', background: pathname === '/gm' ? '#121417' : 'var(--color-red)' }}
+    />
   )
 }
 

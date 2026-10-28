@@ -557,7 +557,7 @@ function PlayersTab({ flash }: { flash: (m: string) => void }) {
       </Panel>
 
       {sel.size > 0 && (
-        <div className="sticky bottom-[96px] z-20 mx-[14px] flex items-center gap-2 border-4 border-yolk bg-ink p-2 text-white">
+        <div style={{ bottom: 'calc(max(14px, env(safe-area-inset-bottom)) + 76px)' }} className="sticky z-20 mx-[14px] flex items-center gap-2 border-4 border-yolk bg-ink p-2 text-white">
           <span className="font-pix text-[9px]">{sel.size} TO</span>
           <label htmlFor="bulkpub" className="sr-only">Pub</label>
           <select
