@@ -43,11 +43,13 @@ export function DrunkProvider({ children }: { children: ReactNode }) {
       {/* Outer box takes the filter (and so anchors fixed children to the screen); inner box scrolls */}
       <div className={level ? `drunk d${level} fixed inset-0 overflow-hidden` : ''}>
         <div className={level ? 'h-full overflow-y-auto overscroll-none' : ''}>{children}</div>
+        {/* Sheets portal here: above every screen's stacking contexts, but still inside the drunk filter */}
+        <div id="overlay-root" />
       </div>
       {level === 3 && <div className="drunk-vignette" aria-hidden="true" />}
       {hic > 0 && level > 0 && (
         <div key={hic} className="drunk-hic" aria-hidden="true">
-          {hic === 1 ? 'woah steady big man!' : hic === 2 ? 'Christ you are so drunk!!' : 'Thats it, someone phone him a taxi'}
+          HIC!
         </div>
       )}
     </Ctx.Provider>

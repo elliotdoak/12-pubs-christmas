@@ -1,5 +1,9 @@
 import { Sheet, SheetClose } from './Sheet'
+import { useState } from 'react'
 import { Avatar } from './ui'
+import { Lightbox, Polaroid, SnapButton, thumbPath } from './PhotoBits'
+import { useSignedUrls } from '../lib/photos'
+import type { PhotoRow } from '../hooks/useGame'
 import { useGameCtx } from '../lib/game'
 import { useSession } from '../lib/session'
 import { BLINDFOLD_RULES, PAIRS, PLAYERS, niceTime, pubByN, sprite } from '../data/crawl'
@@ -48,6 +52,8 @@ export function PubSheet({ n, onClose }: { n: number; onClose: () => void }) {
         </div>
       </div>
 
+      {unlocked && <PubPhotos n={n} />}
+
       {unlocked ? (
         <div className="mx-4 mt-3 flex flex-col gap-3">
           <Box label="CHALLENGE" tone="pine">{pub.challenge}</Box>
@@ -89,6 +95,32 @@ function Box({ label, tone, children }: { label: string; tone: 'pine' | 'red' | 
     <div className="border-[3px] border-ink bg-white p-3">
       <div className={`mb-1 font-pix text-[9px] ${c}`}>{label}</div>
       <div className="text-[17px] leading-[22px]">{children}</div>
+    </div>
+  )
+}
+
+/** Photos taken at this pub, plus a snap button. Only shown once you've unlocked the pub. */
+function PubPhotos({ n }: { n: number }) {
+  const { game } = useGameCtx()
+  const [open, setOpen] = useState<PhotoRow | null>(null)
+  const list = game.photos.filter((p) => p.pub_n === n)
+  const url = useSignedUrls(list.slice(0, 8).map((p) => thumbPath(p.path)))
+  return (
+    <div className="mx-4 mt-3 border-[3px] border-ink bg-white p-3">
+      <div className="mb-2 flex items-center justify-between">
+        <span className="font-pix text-[9px] text-royal">PHOTOS FROM HERE ({list.length})</span>
+        <SnapButton pub={n} className="border-2 border-ink bg-yolk px-2 py-[6px] font-pix text-[8px]">+ SNAP</SnapButton>
+      </div>
+      {list.length ? (
+        <div className="grid grid-cols-4 gap-2">
+          {list.slice(0, 8).map((p) => (
+            <Polaroid key={p.id} small photo={p} url={url(thumbPath(p.path))} onOpen={() => setOpen(p)} />
+          ))}
+        </div>
+      ) : (
+        <p className="m-0 text-[14px] leading-[18px] text-muted">No photos here yet. +2 points for the first one you post.</p>
+      )}
+      {open && <Lightbox photo={open} onClose={() => setOpen(null)} />}
     </div>
   )
 }

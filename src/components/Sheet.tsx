@@ -1,4 +1,5 @@
 import { useEffect, useRef, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 
 /** Bottom sheet with a scrim, focus on open and Escape to close. */
 export function Sheet({ label, onClose, children }: { label: string; onClose?: () => void; children: ReactNode }) {
@@ -11,7 +12,7 @@ export function Sheet({ label, onClose, children }: { label: string; onClose?: (
     return () => window.removeEventListener('keydown', h)
   }, [onClose])
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-30 flex items-end justify-center bg-ink/70" onClick={onClose}>
       <div
         ref={ref}
@@ -25,7 +26,8 @@ export function Sheet({ label, onClose, children }: { label: string; onClose?: (
       >
         {children}
       </div>
-    </div>
+    </div>,
+    document.getElementById('overlay-root') ?? document.body,
   )
 }
 

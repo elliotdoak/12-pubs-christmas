@@ -103,7 +103,7 @@ export default function Scores() {
           <li><b className="text-yolk">{SCORING.challengeFailed}</b> challenge failed</li>
           <li><b className="text-yolk">+{SCORING.firstIn}</b> first through the door</li>
           <li><b className="text-yolk">+{SCORING.bestDressed}</b> best dressed at Press Bar</li>
-          <li><b className="text-yolk">+{SCORING.photo}</b> each photo on the wall (coming soon)</li>
+          <li><b className="text-yolk">+{SCORING.photo}</b> posting a photo at each pub</li>
           <li><b className="text-yolk">{SCORING.sleepyJail}</b> sent to Sleepy Jail</li>
           <li className="mt-1 text-[14px] leading-[18px] text-[#D8D2C6]">The Game Master can hand out bonus points too. Tap any row for the breakdown.</li>
         </ul>

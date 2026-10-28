@@ -23,9 +23,12 @@ export interface Score {
  *   +10 each pub reached, +15 challenge passed, -5 challenge failed,
  *   +5 first through the door at a pub, -10 if ever sent to Sleepy Jail,
  *   plus any Game Master bonuses (best dressed at Press Bar is +20).
- * Photos (+2 each) join in when the photo wall lands.
+ *   +2 for posting a photo at a pub (once per pub, plus once before the crawl).
  */
-export function computeScores(game: GameState, photos: Partial<Record<PlayerId, number>> = {}): Score[] {
+export function computeScores(game: GameState): Score[] {
+  // Photo points count once per pub, so spamming the wall doesn't win the night
+  const photoPubs: Partial<Record<PlayerId, Set<number>>> = {}
+  for (const ph of game.photos) (photoPubs[ph.player_id] ??= new Set()).add(ph.pub_n ?? 0)
   // Who was first through the door at each pub
   const first = new Map<number, { id: PlayerId; at: string }>()
   for (const c of game.checkins) {
@@ -57,8 +60,8 @@ export function computeScores(game: GameState, photos: Partial<Record<PlayerId, 
 
     for (const b of game.bonuses.filter((b) => b.player_id === p.id)) items.push({ label: b.reason, points: b.points })
 
-    const snaps = photos[p.id] ?? 0
-    if (snaps) items.push({ label: `${snaps} photo${snaps === 1 ? '' : 's'} on the wall`, points: snaps * SCORING.photo })
+    const snaps = photoPubs[p.id]?.size ?? 0
+    if (snaps) items.push({ label: `Photos posted at ${snaps} stop${snaps === 1 ? '' : 's'}`, points: snaps * SCORING.photo })
 
     return {
       id: p.id, pts: items.reduce((s, i) => s + i.points, 0), rank: 0,
