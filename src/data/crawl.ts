@@ -117,6 +117,8 @@ export const SCORING = {
   reachPub: 10,
   challengePassed: 15,
   challengeFailed: -5,
+  firstIn: 5,
+  bestDressed: 20,
   sleepyJail: -10,
   photo: 2,
 } as const

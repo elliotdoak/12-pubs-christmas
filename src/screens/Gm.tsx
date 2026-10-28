@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { AvatarBox, Screen } from '../components/ui'
+import { Avatar, AvatarBox, Screen } from '../components/ui'
 import { PinPad } from '../components/PinPad'
 import { TabBar } from '../components/TabBar'
 import { usePlayers } from '../hooks/usePlayers'
@@ -8,7 +8,7 @@ import { CLAIM_MESSAGES, claimGm, gmResetPin, releaseGm } from '../lib/api'
 import { useGameCtx } from '../lib/game'
 import { useSession } from '../lib/session'
 import { supabase } from '../lib/supabase'
-import { PLAYERS, PUBS, pubByN, type PlayerId } from '../data/crawl'
+import { PLAYERS, PUBS, SCORING, pubByN, type PlayerId } from '../data/crawl'
 
 export default function Gm() {
   const { isGm } = useSession()
@@ -225,9 +225,10 @@ function LiveTab({ flash }: { flash: (m: string) => void }) {
       f.push({ at: j.since, text: `${name(j.player_id)} sent to Sleepy Jail${j.last_pub ? ` (last seen at ${pubByN(j.last_pub).name})` : ''}`, tone: 'red' })
       if (j.released_at) f.push({ at: j.released_at, text: `${name(j.player_id)} released from Sleepy Jail`, tone: 'royal' })
     }
+    for (const b of game.bonuses) f.push({ at: b.created_at, text: `${name(b.player_id)} ${b.points > 0 ? '+' : ''}${b.points}: ${b.reason}`, tone: b.points < 0 ? 'red' : 'royal' })
     for (const g of gmLog) f.push({ at: g.created_at, text: g.message, tone: 'muted' })
     return f.sort((a, b) => b.at.localeCompare(a.at)).slice(0, 40)
-  }, [game.checkins, game.results, game.jail, gmLog])
+  }, [game.checkins, game.results, game.jail, game.bonuses, gmLog])
 
   const current = game.settings.announcement
 
@@ -355,7 +356,76 @@ function ResultsTab({ start, flash }: { start: number; flash: (m: string) => voi
           <Btn tone="pine" onClick={() => markAll('pass')}>PASS ALL UNMARKED</Btn>
         </div>
       </Panel>
+
+      <BonusPanel n={n} flash={flash} />
     </>
+  )
+}
+
+/** Bonus points, e.g. best dressed at Press Bar (+20). Shown on the leaderboard breakdown. */
+function BonusPanel({ n, flash }: { n: number; flash: (m: string) => void }) {
+  const { game } = useGameCtx()
+  const [who, setWho] = useState<PlayerId | ''>('')
+  const [reason, setReason] = useState('')
+  const presets: [string, number][] = n === 2 ? [['Best dressed at Press Bar', SCORING.bestDressed]] : []
+  const amounts = [5, 10, 20, -5, -10]
+
+  const award = async (points: number, why: string) => {
+    if (!supabase || !who) return flash('PICK A PLAYER FIRST')
+    const label = why.trim() || `Game Master bonus at ${pubByN(n).name}`
+    const { error } = await supabase.from('bonuses').insert({ player_id: who, points, reason: label })
+    await game.reload()
+    if (error) return flash('COULD NOT AWARD')
+    setReason('')
+    flash(`${name(who).toUpperCase()} ${points > 0 ? '+' : ''}${points}`)
+  }
+
+  const remove = async (id: number) => {
+    if (!supabase) return
+    const { error } = await supabase.from('bonuses').delete().eq('id', id)
+    await game.reload()
+    flash(error ? 'COULD NOT REMOVE' : 'BONUS REMOVED')
+  }
+
+  return (
+    <Panel title="BONUS POINTS" hint="Shows on the leaderboard">
+      <div className="flex flex-col gap-2 p-3">
+        <label htmlFor="bonuswho" className="sr-only">Player</label>
+        <select id="bonuswho" value={who} onChange={(e) => setWho(e.target.value as PlayerId)} className="border-2 border-ink bg-white p-2 text-[16px]">
+          <option value="">Pick a player…</option>
+          {PLAYERS.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+        </select>
+        {presets.map(([why, pts]) => (
+          <Btn key={why} tone="yolk" onClick={() => award(pts, why)}>{why.toUpperCase()} +{pts}</Btn>
+        ))}
+        <label htmlFor="bonuswhy" className="sr-only">Reason</label>
+        <input
+          id="bonuswhy"
+          value={reason}
+          maxLength={60}
+          onChange={(e) => setReason(e.target.value)}
+          placeholder="Reason (e.g. Sing song MVP)"
+          className="border-2 border-ink bg-white p-2 text-[16px]"
+        />
+        <div className="flex flex-wrap gap-1">
+          {amounts.map((a) => (
+            <Btn key={a} tone={a > 0 ? 'pine' : 'red'} onClick={() => award(a, reason)}>{a > 0 ? '+' : ''}{a}</Btn>
+          ))}
+        </div>
+      </div>
+      {game.bonuses.length > 0 && (
+        <ul className="m-0 list-none border-t-4 border-ink p-0">
+          {[...game.bonuses].reverse().map((b) => (
+            <li key={b.id} className="flex items-center gap-2 border-b-2 border-dashed border-[#CFC6B6] px-3 py-2 last:border-0">
+              <Avatar id={b.player_id} size={24} />
+              <span className="min-w-0 flex-1 text-[14px] leading-[18px]"><b>{name(b.player_id)}</b> · {b.reason}</span>
+              <b className={`text-[14px] ${b.points < 0 ? 'text-red' : 'text-pine'}`}>{b.points > 0 ? '+' : ''}{b.points}</b>
+              <Btn onClick={() => remove(b.id)} label={`Remove ${b.reason}`}>✕</Btn>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Panel>
   )
 }
 

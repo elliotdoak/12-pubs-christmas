@@ -13,6 +13,7 @@ import Pin from './screens/Pin'
 import Lobby from './screens/Lobby'
 import Gm from './screens/Gm'
 import MapScreen from './screens/MapScreen'
+import Scores from './screens/Scores'
 
 export default function App() {
   return (
@@ -27,6 +28,7 @@ export default function App() {
           <Route path="/pin/:id" element={<Ready><Pin /></Ready>} />
           <Route path="/lobby" element={<Ready needPlayer><Lobby /></Ready>} />
           <Route path="/map" element={<Ready needPlayer><MapScreen /></Ready>} />
+          <Route path="/scores" element={<Ready needPlayer><Scores /></Ready>} />
           <Route path="/gm" element={<Ready><Gm /></Ready>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

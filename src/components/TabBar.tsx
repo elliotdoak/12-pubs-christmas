@@ -5,6 +5,7 @@ import { DRUNK_LEVELS, useDrunk } from '../lib/drunk'
 const ICONS = {
   players: 'M2 0h3v1h-3zM1 1h5v3h-5zM2 4h3v1h-3zM0 6h7v4h-7zM8 1h2v1h-2zM7 2h4v2h-4zM8 4h2v1h-2zM8 6h4v4h-4z',
   map: 'M0 1h4v9h-4zM4 0h4v9h-4zM8 1h4v9h-4z',
+  scores: 'M2 0h8v5h-8zM0 1h2v1h-2zM10 1h2v1h-2zM0 2h1v2h-1zM11 2h1v2h-1zM1 4h1v1h-1zM10 4h1v1h-1zM3 5h6v1h-6zM5 6h2v2h-2zM3 8h6v2h-6z',
   gm: 'M5 0h2v2h-2zM2 2h8v2h-8zM1 4h10v4h-10zM3 8h6v2h-6z',
   pint: 'M2 0h7v2h-7zM2 2h1v7h-1zM8 2h1v7h-1zM3 4h5v5h-5zM9 3h2v1h-2zM10 4h1v3h-1zM9 7h2v1h-2zM2 9h7v1h-7z',
 }
@@ -16,6 +17,7 @@ export function TabBar() {
   const tabs: [string, string, keyof typeof ICONS][] = [
     ['/lobby', 'PLAYERS', 'players'],
     ['/map', 'MAP', 'map'],
+    ['/scores', 'SCORES', 'scores'],
   ]
   if (isGm) tabs.push(['/gm', 'GM', 'gm'])
 

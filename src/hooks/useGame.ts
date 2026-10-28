@@ -11,6 +11,7 @@ export interface CheckinRow {
 }
 export interface ResultRow { player_id: PlayerId; pub_n: number; outcome: 'pass' | 'fail'; set_at: string }
 export interface Settings { announcement: string | null; announced_at: string | null }
+export interface BonusRow { id: number; player_id: PlayerId; points: number; reason: string; created_at: string }
 export interface JailRow { player_id: PlayerId; last_pub: number | null; since: string; released_at: string | null }
 
 export interface GameState {
@@ -18,6 +19,7 @@ export interface GameState {
   checkins: CheckinRow[]
   results: ResultRow[]
   jail: JailRow[]
+  bonuses: BonusRow[]
   settings: Settings
   /** Highest pub each player has reached (0 = not started) */
   lastPub: Record<PlayerId, number>
@@ -32,21 +34,24 @@ export function useGame(enabled = true): GameState {
   const [checkins, setCheckins] = useState<CheckinRow[]>([])
   const [results, setResults] = useState<ResultRow[]>([])
   const [jail, setJail] = useState<JailRow[]>([])
+  const [bonuses, setBonuses] = useState<BonusRow[]>([])
   const [settings, setSettings] = useState<Settings>({ announcement: null, announced_at: null })
   const [loaded, setLoaded] = useState(false)
 
   const reload = useCallback(async () => {
     if (!supabase) return
-    const [c, r, j, s] = await Promise.all([
+    const [c, r, j, s, b] = await Promise.all([
       supabase.from('checkins').select('player_id,pub_n,at,source,by_player'),
       supabase.from('results').select('player_id,pub_n,outcome,set_at'),
       supabase.from('jail').select('player_id,last_pub,since,released_at'),
       supabase.from('settings').select('announcement,announced_at').eq('id', 1).maybeSingle(),
+      supabase.from('bonuses').select('id,player_id,points,reason,created_at').order('created_at'),
     ])
     if (c.data) setCheckins(c.data as CheckinRow[])
     if (r.data) setResults(r.data as ResultRow[])
     if (j.data) setJail(j.data as JailRow[])
     if (s.data) setSettings(s.data as Settings)
+    if (b.data) setBonuses(b.data as BonusRow[])
     setLoaded(true)
   }, [])
 
@@ -61,6 +66,7 @@ export function useGame(enabled = true): GameState {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'results' }, reload)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'jail' }, reload)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'settings' }, reload)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'bonuses' }, reload)
       .subscribe()
     // Belt and braces: refetch when the app comes back to the foreground, and every minute.
     const vis = () => document.visibilityState === 'visible' && reload()
@@ -85,8 +91,8 @@ export function useGame(enabled = true): GameState {
     )
     const resMap = new Map(results.map((r) => [`${r.player_id}:${r.pub_n}`, r.outcome]))
     return {
-      loaded, checkins, results, jail, settings, lastPub, visited, inJail, reload,
+      loaded, checkins, results, jail, bonuses, settings, lastPub, visited, inJail, reload,
       result: (p: PlayerId, n: number) => resMap.get(`${p}:${n}`),
     }
-  }, [loaded, checkins, results, jail, settings, reload])
+  }, [loaded, checkins, results, jail, bonuses, settings, reload])
 }
