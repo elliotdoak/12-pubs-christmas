@@ -1,19 +1,21 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AvatarBox, Screen } from '../components/ui'
 import { PinPad } from '../components/PinPad'
+import { TabBar } from '../components/TabBar'
 import { usePlayers } from '../hooks/usePlayers'
 import { CLAIM_MESSAGES, claimGm, gmResetPin, releaseGm } from '../lib/api'
-import { useSession } from '../lib/session'
-import { COSTUMES, PLAYERS, pubByN, type PlayerId } from '../data/crawl'
-import { TabBar } from '../components/TabBar'
 import { useGameCtx } from '../lib/game'
+import { useSession } from '../lib/session'
 import { supabase } from '../lib/supabase'
+import { PLAYERS, PUBS, pubByN, type PlayerId } from '../data/crawl'
 
 export default function Gm() {
   const { isGm } = useSession()
   return <div className="min-h-dvh bg-[#121417]">{isGm ? <ControlRoom /> : <GmLogin />}</div>
 }
+
+/* ---------------- login ---------------- */
 
 function GmLogin() {
   const { refresh } = useSession()
@@ -42,105 +44,81 @@ function GmLogin() {
   )
 }
 
-/** Manual check-ins (the fallback when a phone dies), practice mode and a test-data wipe. */
-function CheckinControls({ flash }: { flash: (m: string) => void }) {
-  const { game, practice, setPractice } = useGameCtx()
-  const [wipe, setWipe] = useState(false)
+/* ---------------- shared bits ---------------- */
 
-  const bump = async (id: PlayerId, name: string) => {
-    const n = game.lastPub[id] + 1
-    if (!supabase || n > 12) return
-    const { error } = await supabase.from('checkins').upsert(
-      { player_id: id, pub_n: n, source: 'gm', by_player: null },
-      { onConflict: 'player_id,pub_n', ignoreDuplicates: true },
-    )
-    await game.reload()
-    flash(error ? 'COULD NOT CHECK IN' : `${name.toUpperCase()} → ${pubByN(n).name.toUpperCase()}`)
-  }
+const name = (id: PlayerId) => PLAYERS.find((p) => p.id === id)?.name ?? id
+const clock = (iso: string) => new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/London' })
+const ago = (iso: string) => {
+  const m = Math.round((Date.now() - new Date(iso).getTime()) / 60_000)
+  return m < 1 ? 'just now' : m < 60 ? `${m} min ago` : `${Math.floor(m / 60)}h ${m % 60}m ago`
+}
 
-  const undo = async (id: PlayerId, name: string) => {
-    const n = game.lastPub[id]
-    if (!supabase || !n) return
-    const { error } = await supabase.from('checkins').delete().eq('player_id', id).eq('pub_n', n)
-    await game.reload()
-    flash(error ? 'COULD NOT UNDO' : `${name.toUpperCase()} BACK TO PUB ${n - 1}`)
-  }
+async function log(message: string) {
+  await supabase?.from('gm_log').insert({ message })
+}
 
-  const wipeAll = async () => {
-    if (!supabase) return
-    const { error } = await supabase.from('checkins').delete().gte('pub_n', 1)
-    setWipe(false)
-    await game.reload()
-    flash(error ? 'WIPE FAILED' : 'ALL CHECK-INS WIPED')
-  }
-
+function Btn({ children, onClick, tone = 'white', disabled, pressed, label }: {
+  children: React.ReactNode; onClick: () => void; tone?: 'white' | 'pine' | 'red' | 'yolk' | 'ink'
+  disabled?: boolean; pressed?: boolean; label?: string
+}) {
+  const c = { white: 'bg-white text-ink', pine: 'bg-pine text-white', red: 'bg-red text-white', yolk: 'bg-yolk text-ink', ink: 'bg-ink text-white' }[tone]
   return (
-    <>
-      <section className="mx-[14px] mb-6 border-4 border-ink bg-wool text-ink" aria-label="Check-ins">
-        <div className="bg-ink px-3 py-2 font-pix text-[10px] text-yolk">CHECK-INS · MANUAL OVERRIDE</div>
-        <ul className="m-0 list-none p-0">
-          {PLAYERS.map((p) => {
-            const n = game.lastPub[p.id]
-            return (
-              <li key={p.id} className="flex items-center gap-3 border-b-2 border-dashed border-[#CFC6B6] px-3 py-2 last:border-0">
-                <AvatarBox id={p.id} size={36} />
-                <div className="min-w-0 flex-1">
-                  <b className="text-[16px]">{p.name}</b>
-                  <div className="text-[13px] text-muted">{n ? `Pub ${n} · ${pubByN(n).name}` : 'Not started'}</div>
-                </div>
-                <button type="button" disabled={!n} onClick={() => undo(p.id, p.name)} className="border-2 border-ink bg-white px-2 py-1 font-pix text-[8px] disabled:opacity-40">UNDO</button>
-                <button type="button" disabled={n >= 12} onClick={() => bump(p.id, p.name)} className="border-2 border-ink bg-pine px-2 py-1 font-pix text-[8px] text-white disabled:opacity-40">+1 PUB</button>
-              </li>
-            )
-          })}
-        </ul>
-      </section>
-
-      <section className="mx-[14px] mb-6 flex flex-col gap-3 border-4 border-ink bg-wool p-3 text-ink" aria-label="Testing">
-        <div className="font-pix text-[10px]">TESTING</div>
-        <label className="flex items-center gap-3 text-[16px]">
-          <input type="checkbox" checked={practice} onChange={(e) => setPractice(e.target.checked)} className="h-5 w-5 accent-[var(--color-pine)]" />
-          Practice mode on this phone (auto check-in before game day, no time limits)
-        </label>
-        {wipe ? (
-          <div className="flex items-center gap-2">
-            <span className="flex-1 text-[15px]">Delete every check-in for everyone?</span>
-            <button type="button" onClick={wipeAll} className="border-2 border-ink bg-red px-2 py-1 font-pix text-[8px] text-white">WIPE</button>
-            <button type="button" onClick={() => setWipe(false)} className="border-2 border-ink bg-white px-2 py-1 font-pix text-[8px]">NO</button>
-          </div>
-        ) : (
-          <button type="button" onClick={() => setWipe(true)} className="self-start border-2 border-ink bg-white px-2 py-1 font-pix text-[8px]">WIPE TEST CHECK-INS</button>
-        )}
-      </section>
-    </>
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      aria-pressed={pressed}
+      aria-label={label}
+      className={`shrink-0 border-2 border-ink px-2 py-[6px] font-pix text-[8px] leading-[10px] disabled:opacity-35 ${c}`}
+    >
+      {children}
+    </button>
   )
 }
 
+function Panel({ title, hint, children }: { title: string; hint?: string; children: React.ReactNode }) {
+  return (
+    <section className="mx-[14px] mb-4 border-4 border-ink bg-wool text-ink" aria-label={title}>
+      <div className="flex items-baseline justify-between gap-2 bg-ink px-3 py-2">
+        <span className="font-pix text-[10px] text-yolk">{title}</span>
+        {hint && <span className="text-right text-[12px] leading-[14px] text-[#B9B2A6]">{hint}</span>}
+      </div>
+      {children}
+    </section>
+  )
+}
+
+type Tab = 'live' | 'results' | 'players' | 'testing'
+
+/* ---------------- control room ---------------- */
+
 function ControlRoom() {
   const { refresh, playerId } = useSession()
-  const { players, reload } = usePlayers(15_000)
-  const [confirm, setConfirm] = useState<PlayerId | null>(null)
+  const { game } = useGameCtx()
+  const { players } = usePlayers(15_000)
+  const [tab, setTab] = useState<Tab>('live')
   const [toast, setToast] = useState<string | null>(null)
 
-  const flash = (msg: string) => {
+  const flash = useCallback((msg: string) => {
     setToast(msg)
-    setTimeout(() => setToast(null), 2000)
-  }
+    setTimeout(() => setToast(null), 2200)
+  }, [])
 
-  const reset = async (id: PlayerId, name: string) => {
-    const res = await gmResetPin(id)
-    setConfirm(null)
-    if (!res.ok) return flash(CLAIM_MESSAGES[res.error ?? 'network'].toUpperCase())
-    await reload()
-    flash(`${name.toUpperCase()} CAN PICK A NEW PIN`)
-  }
+  const joined = players?.filter((p) => p.has_pin).length ?? 0
+  const out = PLAYERS.filter((p) => game.lastPub[p.id] > 0 && !game.inJail.has(p.id)).length
+  const crowdPub = useMemo(() => {
+    const counts = new Map<number, number>()
+    for (const p of PLAYERS) {
+      const n = game.lastPub[p.id]
+      if (n && !game.inJail.has(p.id)) counts.set(n, (counts.get(n) ?? 0) + 1)
+    }
+    return [...counts.entries()].sort((a, b) => b[1] - a[1] || b[0] - a[0])[0]?.[0] ?? 0
+  }, [game.lastPub, game.inJail])
 
   const exit = async () => {
     await releaseGm()
     await refresh()
   }
-
-  const joined = players?.filter((p) => p.has_pin).length ?? 0
 
   return (
     <Screen>
@@ -149,58 +127,434 @@ function ControlRoom() {
           <div className="font-pix text-[9px] text-yolk">GAME MASTER · ADMIN</div>
           <h1 className="m-0 mt-2 font-pix text-[20px] text-white">CONTROL ROOM</h1>
         </div>
-        <div className="flex gap-2">
-          {playerId && (
-            <Link to="/lobby" className="border-4 border-wool px-2 py-1 font-pix text-[9px] text-wool no-underline">LOBBY</Link>
-          )}
+        {!playerId && (
           <button type="button" onClick={exit} className="border-4 border-wool px-2 py-1 font-pix text-[9px] text-wool">EXIT</button>
-        </div>
+        )}
       </div>
 
       <div className="mx-[14px] mb-3 grid grid-cols-2 gap-2">
-        <div className="bg-ink p-3 font-pix text-[9px] text-white">JOINED <em className="not-italic text-yolk">{joined}/{players?.length ?? 10}</em></div>
-        <div className="bg-ink p-3 font-pix text-[9px] text-white">GAME <em className="not-italic text-yolk">PRE-GAME</em></div>
+        <Stat k="JOINED" v={`${joined}/${PLAYERS.length}`} />
+        <Stat k="OUT" v={`${out}`} />
+        <Stat k="SLEEPY JAIL" v={`${game.inJail.size}`} hot={game.inJail.size > 0} />
+        <Stat k="CROWD AT" v={crowdPub ? `PUB ${crowdPub}` : 'PRE-GAME'} />
       </div>
 
-      <section className="mx-[14px] mb-6 border-4 border-ink bg-wool text-ink" aria-label="Players">
-        <div className="bg-ink px-3 py-2 font-pix text-[10px] text-yolk">PLAYERS · PINS</div>
-        <ul className="m-0 list-none p-0">
-          {players?.map((p) => (
-            <li key={p.id} className="flex items-center gap-3 border-b-2 border-dashed border-[#CFC6B6] px-3 py-2 last:border-0">
-              <AvatarBox id={p.id} size={40} />
-              <div className="min-w-0 flex-1">
-                <b className="text-[16px]">{p.name}</b>
-                <div className="text-[13px] text-muted">{COSTUMES[p.costume].name}</div>
-              </div>
-              {confirm === p.id ? (
-                <div className="flex gap-1">
-                  <button type="button" onClick={() => reset(p.id, p.name)} className="border-2 border-ink bg-red px-2 py-1 font-pix text-[8px] text-white">RESET</button>
-                  <button type="button" onClick={() => setConfirm(null)} className="border-2 border-ink bg-white px-2 py-1 font-pix text-[8px]">NO</button>
-                </div>
-              ) : p.has_pin ? (
-                <button type="button" onClick={() => setConfirm(p.id)} className="border-2 border-ink bg-white px-2 py-1 font-pix text-[8px]">
-                  RESET PIN
-                </button>
-              ) : (
-                <span className="tag bg-white text-muted">NOT JOINED</span>
-              )}
-            </li>
-          ))}
-        </ul>
-      </section>
+      <div className="mx-[14px] mb-4 grid grid-cols-4 gap-1" role="tablist" aria-label="Control room sections">
+        {(['live', 'results', 'players', 'testing'] as Tab[]).map((t) => (
+          <button
+            key={t}
+            type="button"
+            role="tab"
+            aria-selected={tab === t}
+            onClick={() => setTab(t)}
+            className={`border-2 border-ink py-2 font-pix text-[8px] ${tab === t ? 'bg-yolk text-ink' : 'bg-ink text-wool'}`}
+          >
+            {t.toUpperCase()}
+          </button>
+        ))}
+      </div>
 
-      <CheckinControls flash={flash} />
+      {tab === 'live' && <LiveTab flash={flash} />}
+      {tab === 'results' && <ResultsTab start={crowdPub || 1} flash={flash} />}
+      {tab === 'players' && <PlayersTab flash={flash} />}
+      {tab === 'testing' && <TestingTab flash={flash} onExit={exit} />}
 
-      <p className="mx-[18px] mb-8 text-[14px] leading-[18px] text-[#B9B2A6]">
-        Results, Sleepy Jail and announcements arrive here in the next builds.
-      </p>
-
+      <div className="h-6" />
       {toast && (
-        <div role="status" className="fixed bottom-8 left-1/2 -translate-x-1/2 whitespace-nowrap border-4 border-yolk bg-ink px-4 py-3 font-pix text-[10px] text-yolk">
+        <div role="status" className="fixed bottom-28 left-1/2 z-40 -translate-x-1/2 whitespace-nowrap border-4 border-yolk bg-ink px-4 py-3 font-pix text-[10px] text-yolk">
           {toast}
         </div>
       )}
       {playerId && <TabBar />}
     </Screen>
+  )
+}
+
+function Stat({ k, v, hot }: { k: string; v: string; hot?: boolean }) {
+  return (
+    <div className={`flex justify-between p-3 font-pix text-[9px] ${hot ? 'bg-red text-white' : 'bg-ink text-white'}`}>
+      {k} <em className="not-italic text-yolk">{v}</em>
+    </div>
+  )
+}
+
+/* ---------------- LIVE: announcements + activity ---------------- */
+
+interface Feed { at: string; text: string; tone: 'pine' | 'red' | 'royal' | 'muted' }
+
+function LiveTab({ flash }: { flash: (m: string) => void }) {
+  const { game } = useGameCtx()
+  const [text, setText] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [gmLog, setGmLog] = useState<{ message: string; created_at: string }[]>([])
+
+  useEffect(() => {
+    if (!supabase) return
+    const sb = supabase
+    const load = () => sb.from('gm_log').select('message,created_at').order('created_at', { ascending: false }).limit(30).then(({ data }) => data && setGmLog(data))
+    load()
+    const id = setInterval(load, 20_000)
+    return () => clearInterval(id)
+  }, [game.checkins, game.results])
+
+  const announce = async (msg: string | null) => {
+    if (!supabase) return
+    setBusy(true)
+    const { error } = await supabase
+      .from('settings')
+      .update({ announcement: msg, announced_at: msg ? new Date().toISOString() : null, updated_at: new Date().toISOString() })
+      .eq('id', 1)
+    setBusy(false)
+    if (error) return flash('COULD NOT SEND')
+    if (msg) {
+      log(`Announced: "${msg}"`)
+      setText('')
+    }
+    game.reload()
+    flash(msg ? 'SENT TO EVERYONE' : 'BANNER CLEARED')
+  }
+
+  const feed: Feed[] = useMemo(() => {
+    const f: Feed[] = []
+    for (const c of game.checkins) {
+      const how = c.source === 'gm' ? ' (by GM)' : c.source === 'crew' && c.by_player ? ` (by ${name(c.by_player)})` : ''
+      f.push({ at: c.at, text: `${name(c.player_id)} checked in at ${pubByN(c.pub_n).name}${how}`, tone: 'pine' })
+    }
+    for (const r of game.results) f.push({ at: r.set_at, text: `${name(r.player_id)} ${r.outcome === 'pass' ? 'passed' : 'failed'} at ${pubByN(r.pub_n).name}`, tone: r.outcome === 'pass' ? 'pine' : 'red' })
+    for (const j of game.jail) {
+      f.push({ at: j.since, text: `${name(j.player_id)} sent to Sleepy Jail${j.last_pub ? ` (last seen at ${pubByN(j.last_pub).name})` : ''}`, tone: 'red' })
+      if (j.released_at) f.push({ at: j.released_at, text: `${name(j.player_id)} released from Sleepy Jail`, tone: 'royal' })
+    }
+    for (const g of gmLog) f.push({ at: g.created_at, text: g.message, tone: 'muted' })
+    return f.sort((a, b) => b.at.localeCompare(a.at)).slice(0, 40)
+  }, [game.checkins, game.results, game.jail, gmLog])
+
+  const current = game.settings.announcement
+
+  return (
+    <>
+      <Panel title="ANNOUNCE" hint="Banner on every phone">
+        <div className="flex flex-col gap-2 p-3">
+          {current && (
+            <div className="flex items-start gap-2 border-2 border-ink bg-yolk p-2">
+              <span className="flex-1 text-[15px] leading-[19px]"><b>Showing now:</b> {current}</span>
+              <Btn onClick={() => announce(null)} disabled={busy}>CLEAR</Btn>
+            </div>
+          )}
+          <label htmlFor="ann" className="sr-only">Message to all players</label>
+          <textarea
+            id="ann"
+            rows={2}
+            maxLength={140}
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            placeholder="Taxi rank meet-up in 10. Nobody gets left behind!"
+            className="w-full resize-none border-2 border-ink bg-white p-2 text-[16px] leading-[20px] text-ink"
+          />
+          <div className="flex items-center justify-between">
+            <span className="text-[13px] text-muted">{text.length}/140</span>
+            <button type="button" className="btn-big sm !w-auto" disabled={busy || !text.trim()} onClick={() => announce(text.trim())}>
+              SEND ▶
+            </button>
+          </div>
+          <p className="m-0 text-[13px] leading-[17px] text-muted">Shows as a banner in the app. Push notifications to locked phones come in the next build.</p>
+        </div>
+      </Panel>
+
+      <Panel title="ACTIVITY" hint="Newest first">
+        {feed.length ? (
+          <ul className="m-0 max-h-[420px] list-none overflow-y-auto p-0">
+            {feed.map((e, i) => (
+              <li key={i} className="flex gap-3 border-b-2 border-dashed border-[#CFC6B6] px-3 py-2 last:border-0">
+                <span className="shrink-0 font-pix text-[8px] leading-[18px] text-muted">{clock(e.at)}</span>
+                <span className={`text-[15px] leading-[19px] ${e.tone === 'red' ? 'text-red' : e.tone === 'royal' ? 'text-royal' : e.tone === 'muted' ? 'text-muted' : ''}`}>{e.text}</span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="m-0 p-3 text-[15px] text-muted">Nothing yet. Check-ins, results and jail time appear here as they happen.</p>
+        )}
+      </Panel>
+    </>
+  )
+}
+
+/* ---------------- RESULTS: pass / fail per pub ---------------- */
+
+function ResultsTab({ start, flash }: { start: number; flash: (m: string) => void }) {
+  const { game } = useGameCtx()
+  const [n, setN] = useState(start)
+  const pub = pubByN(n)
+
+  const set = async (id: PlayerId, outcome: 'pass' | 'fail') => {
+    if (!supabase) return
+    const current = game.result(id, n)
+    const { error } = current === outcome
+      ? await supabase.from('results').delete().eq('player_id', id).eq('pub_n', n)
+      : await supabase.from('results').upsert({ player_id: id, pub_n: n, outcome, set_at: new Date().toISOString() }, { onConflict: 'player_id,pub_n' })
+    await game.reload()
+    if (error) return flash('COULD NOT SAVE')
+    flash(current === outcome ? `${name(id).toUpperCase()}: CLEARED` : `${name(id).toUpperCase()} ${outcome === 'pass' ? 'PASSED' : 'FAILED'}`)
+  }
+
+  const markAll = async (outcome: 'pass') => {
+    if (!supabase) return
+    const ids = PLAYERS.filter((p) => game.visited[p.id].has(n) && !game.result(p.id, n)).map((p) => p.id)
+    if (!ids.length) return flash('NOBODY LEFT TO MARK')
+    const { error } = await supabase.from('results').upsert(ids.map((id) => ({ player_id: id, pub_n: n, outcome, set_at: new Date().toISOString() })), { onConflict: 'player_id,pub_n' })
+    await game.reload()
+    flash(error ? 'COULD NOT SAVE' : `${ids.length} PASSED`)
+  }
+
+  const reached = PLAYERS.filter((p) => game.visited[p.id].has(n))
+  const notYet = PLAYERS.filter((p) => !game.visited[p.id].has(n))
+
+  return (
+    <>
+      <div className="mx-[14px] mb-3 grid grid-cols-6 gap-1" role="tablist" aria-label="Pub">
+        {PUBS.map((p) => (
+          <button
+            key={p.n}
+            type="button"
+            role="tab"
+            aria-selected={p.n === n}
+            aria-label={`Pub ${p.n}: ${p.name}`}
+            onClick={() => setN(p.n)}
+            className={`border-2 border-ink py-2 font-pix text-[10px] ${p.n === n ? 'bg-yolk text-ink' : 'bg-wool text-ink'}`}
+          >
+            {p.n}
+          </button>
+        ))}
+      </div>
+
+      <Panel title={`PUB ${n} · ${pub.name.toUpperCase()}`}>
+        <div className="border-b-4 border-ink bg-white p-3">
+          <div className="font-pix text-[8px] text-pine">CHALLENGE</div>
+          <div className="mt-1 text-[16px] leading-[20px]">{pub.challenge}</div>
+          {pub.forfeit && <div className="mt-2 text-[14px] leading-[18px] text-red">Forfeit: {pub.forfeit}</div>}
+        </div>
+        <ul className="m-0 list-none p-0">
+          {[...reached, ...notYet].map((p) => {
+            const r = game.result(p.id, n)
+            const here = game.visited[p.id].has(n)
+            return (
+              <li key={p.id} className={`flex items-center gap-3 border-b-2 border-dashed border-[#CFC6B6] px-3 py-2 last:border-0 ${here ? '' : 'opacity-55'}`}>
+                <AvatarBox id={p.id} size={36} />
+                <div className="min-w-0 flex-1">
+                  <b className="text-[16px]">{p.name}</b>
+                  <div className="text-[13px] text-muted">{here ? (r ? (r === 'pass' ? 'Passed' : 'Failed') : 'Reached · not marked') : 'Not here yet'}</div>
+                </div>
+                <Btn tone={r === 'pass' ? 'pine' : 'white'} pressed={r === 'pass'} onClick={() => set(p.id, 'pass')} label={`${p.name} passed`}>PASS</Btn>
+                <Btn tone={r === 'fail' ? 'red' : 'white'} pressed={r === 'fail'} onClick={() => set(p.id, 'fail')} label={`${p.name} failed`}>FAIL</Btn>
+              </li>
+            )
+          })}
+        </ul>
+        <div className="flex items-center justify-between gap-2 border-t-4 border-ink p-3">
+          <span className="text-[13px] leading-[17px] text-muted">Tap a highlighted button again to clear it.</span>
+          <Btn tone="pine" onClick={() => markAll('pass')}>PASS ALL UNMARKED</Btn>
+        </div>
+      </Panel>
+    </>
+  )
+}
+
+/* ---------------- PLAYERS: status, jail, manual check-in, PINs ---------------- */
+
+interface Seen { player_id: PlayerId; updated_at: string; accuracy_m: number | null }
+
+function PlayersTab({ flash }: { flash: (m: string) => void }) {
+  const { game } = useGameCtx()
+  const { players, reload: reloadPlayers } = usePlayers(15_000)
+  const [seen, setSeen] = useState<Record<string, Seen>>({})
+  const [sel, setSel] = useState<Set<PlayerId>>(new Set())
+  const [bulkPub, setBulkPub] = useState<number | null>(null)
+  const [confirmPin, setConfirmPin] = useState<PlayerId | null>(null)
+
+  useEffect(() => {
+    if (!supabase) return
+    const sb = supabase
+    const load = () =>
+      sb.from('locations').select('player_id,updated_at,accuracy_m').then(({ data }) => {
+        if (data) setSeen(Object.fromEntries((data as Seen[]).map((d) => [d.player_id, d])))
+      })
+    load()
+    const id = setInterval(load, 30_000)
+    return () => clearInterval(id)
+  }, [])
+
+  const toggle = (id: PlayerId) =>
+    setSel((s) => {
+      const n = new Set(s)
+      if (n.has(id)) n.delete(id)
+      else n.add(id)
+      return n
+    })
+
+  const checkIn = async (ids: PlayerId[], n: number) => {
+    if (!supabase || !ids.length) return
+    const { error } = await supabase.from('checkins').upsert(
+      ids.map((id) => ({ player_id: id, pub_n: n, source: 'gm', by_player: null })),
+      { onConflict: 'player_id,pub_n', ignoreDuplicates: true },
+    )
+    // Arriving somewhere gets you out of jail
+    const jailed = ids.filter((id) => game.inJail.has(id))
+    if (jailed.length) await supabase.from('jail').update({ released_at: new Date().toISOString() }).in('player_id', jailed)
+    await game.reload()
+    flash(error ? 'COULD NOT CHECK IN' : ids.length === 1 ? `${name(ids[0]).toUpperCase()} → PUB ${n}` : `${ids.length} → PUB ${n}`)
+  }
+
+  const undo = async (id: PlayerId) => {
+    const n = game.lastPub[id]
+    if (!supabase || !n) return
+    const { error } = await supabase.from('checkins').delete().eq('player_id', id).eq('pub_n', n)
+    if (!error) log(`Undid ${name(id)}'s check-in at ${pubByN(n).name}`)
+    await game.reload()
+    flash(error ? 'COULD NOT UNDO' : `${name(id).toUpperCase()} BACK TO PUB ${n - 1}`)
+  }
+
+  const jail = async (id: PlayerId) => {
+    if (!supabase) return
+    const inJail = game.inJail.has(id)
+    const { error } = inJail
+      ? await supabase.from('jail').update({ released_at: new Date().toISOString() }).eq('player_id', id)
+      : await supabase.from('jail').upsert({ player_id: id, last_pub: game.lastPub[id] || null, since: new Date().toISOString(), released_at: null }, { onConflict: 'player_id' })
+    await game.reload()
+    flash(error ? 'COULD NOT UPDATE JAIL' : inJail ? `${name(id).toUpperCase()} RELEASED` : `${name(id).toUpperCase()} JAILED`)
+  }
+
+  const resetPin = async (id: PlayerId) => {
+    const res = await gmResetPin(id)
+    setConfirmPin(null)
+    if (!res.ok) return flash(CLAIM_MESSAGES[res.error ?? 'network'].toUpperCase())
+    await reloadPlayers()
+    flash(`${name(id).toUpperCase()} CAN PICK A NEW PIN`)
+  }
+
+  // Suggest the next pub for a bulk check-in: one past the furthest selected player
+  const suggested = Math.min(12, Math.max(1, ...[...sel].map((id) => game.lastPub[id] + 1)))
+  const target = bulkPub ?? suggested
+
+  return (
+    <>
+      <Panel title="PLAYERS" hint="Tick players to check in a group">
+        <ul className="m-0 list-none p-0">
+          {PLAYERS.map((p) => {
+            const n = game.lastPub[p.id]
+            const jailed = game.inJail.has(p.id)
+            const row = players?.find((r) => r.id === p.id)
+            const s = seen[p.id]
+            return (
+              <li key={p.id} className="border-b-2 border-dashed border-[#CFC6B6] px-3 py-2 last:border-0">
+                <div className="flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    checked={sel.has(p.id)}
+                    onChange={() => toggle(p.id)}
+                    aria-label={`Select ${p.name}`}
+                    className="h-5 w-5 shrink-0 accent-[var(--color-pine)]"
+                  />
+                  <AvatarBox id={p.id} size={36} />
+                  <div className="min-w-0 flex-1">
+                    <b className="text-[16px]">{p.name}</b>
+                    <div className={`text-[13px] leading-[17px] ${jailed ? 'text-red' : 'text-muted'}`}>
+                      {jailed ? `Sleepy Jail · last pub ${n || '-'}` : n ? `Pub ${n} · ${pubByN(n).name}` : 'Not started'}
+                      {row && !row.has_pin && ' · not joined'}
+                    </div>
+                    <div className="text-[12px] leading-[15px] text-muted">{s ? `Phone seen ${ago(s.updated_at)}` : 'Phone not seen yet'}</div>
+                  </div>
+                </div>
+                <div className="mt-2 flex flex-wrap justify-end gap-1">
+                  {confirmPin === p.id ? (
+                    <>
+                      <span className="mr-auto self-center text-[13px]">Wipe {p.name}'s PIN?</span>
+                      <Btn tone="red" onClick={() => resetPin(p.id)}>YES, RESET</Btn>
+                      <Btn onClick={() => setConfirmPin(null)}>NO</Btn>
+                    </>
+                  ) : (
+                    <>
+                      {row?.has_pin && <Btn onClick={() => setConfirmPin(p.id)}>RESET PIN</Btn>}
+                      <Btn tone={jailed ? 'yolk' : 'ink'} onClick={() => jail(p.id)}>{jailed ? 'RELEASE' : 'JAIL'}</Btn>
+                      <Btn disabled={!n} onClick={() => undo(p.id)}>UNDO</Btn>
+                      <Btn tone="pine" disabled={n >= 12} onClick={() => checkIn([p.id], n + 1)}>+1 PUB</Btn>
+                    </>
+                  )}
+                </div>
+              </li>
+            )
+          })}
+        </ul>
+      </Panel>
+
+      {sel.size > 0 && (
+        <div className="sticky bottom-[96px] z-20 mx-[14px] flex items-center gap-2 border-4 border-yolk bg-ink p-2 text-white">
+          <span className="font-pix text-[9px]">{sel.size} TO</span>
+          <label htmlFor="bulkpub" className="sr-only">Pub</label>
+          <select
+            id="bulkpub"
+            value={target}
+            onChange={(e) => setBulkPub(Number(e.target.value))}
+            className="min-w-0 flex-1 border-2 border-wool bg-ink px-1 py-1 text-[15px] text-white"
+          >
+            {PUBS.map((p) => <option key={p.n} value={p.n}>{p.n}. {p.name}</option>)}
+          </select>
+          <Btn tone="pine" onClick={async () => { await checkIn([...sel], target); setSel(new Set()); setBulkPub(null) }}>CHECK IN</Btn>
+          <Btn onClick={() => { setSel(new Set()); setBulkPub(null) }} label="Clear selection">✕</Btn>
+        </div>
+      )}
+    </>
+  )
+}
+
+/* ---------------- TESTING ---------------- */
+
+function TestingTab({ flash, onExit }: { flash: (m: string) => void; onExit: () => void }) {
+  const { game, practice, setPractice } = useGameCtx()
+  const [confirm, setConfirm] = useState<'checkins' | 'results' | 'jail' | null>(null)
+
+  const wipe = async (what: 'checkins' | 'results' | 'jail') => {
+    if (!supabase) return
+    const q = what === 'jail' ? supabase.from('jail').delete().neq('player_id', '') : supabase.from(what).delete().gte('pub_n', 1)
+    const { error } = await q
+    if (!error) log(`Wiped all ${what === 'jail' ? 'Sleepy Jail records' : what}`)
+    setConfirm(null)
+    await game.reload()
+    flash(error ? 'WIPE FAILED' : 'WIPED')
+  }
+
+  const labels = { checkins: 'CHECK-INS', results: 'RESULTS', jail: 'SLEEPY JAIL' }
+
+  return (
+    <>
+      <Panel title="PRACTICE MODE">
+        <label className="flex items-start gap-3 p-3 text-[16px] leading-[20px]">
+          <input type="checkbox" checked={practice} onChange={(e) => setPractice(e.target.checked)} className="mt-[2px] h-5 w-5 shrink-0 accent-[var(--color-pine)]" />
+          Auto check-in on this phone before game day, with no time limits. Turn it off when you're done.
+        </label>
+      </Panel>
+
+      <Panel title="WIPE TEST DATA" hint="Can't be undone">
+        <div className="flex flex-col gap-2 p-3">
+          {(['checkins', 'results', 'jail'] as const).map((w) =>
+            confirm === w ? (
+              <div key={w} className="flex items-center gap-2">
+                <span className="flex-1 text-[15px]">Delete all {labels[w].toLowerCase()} for everyone?</span>
+                <Btn tone="red" onClick={() => wipe(w)}>WIPE</Btn>
+                <Btn onClick={() => setConfirm(null)}>NO</Btn>
+              </div>
+            ) : (
+              <Btn key={w} onClick={() => setConfirm(w)}>WIPE ALL {labels[w]}</Btn>
+            ),
+          )}
+        </div>
+      </Panel>
+
+      <Panel title="THIS PHONE">
+        <div className="flex items-center justify-between gap-2 p-3">
+          <span className="text-[15px] leading-[19px]">Sign this phone out of Game Master.</span>
+          <Btn tone="ink" onClick={onExit}>EXIT GM</Btn>
+        </div>
+      </Panel>
+    </>
   )
 }

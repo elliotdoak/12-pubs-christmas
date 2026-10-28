@@ -3,6 +3,7 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { SessionProvider, useSession } from './lib/session'
 import { GameProvider } from './lib/game'
 import { DrunkProvider } from './lib/drunk'
+import { Announcement } from './components/Announcement'
 import { isGameDay } from './data/crawl'
 import { load } from './lib/storage'
 import { Logo, Screen } from './components/ui'
@@ -30,6 +31,7 @@ export default function App() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
         </DrunkProvider>
+        <Announcement />
       </BrowserRouter>
       </GameProvider>
     </SessionProvider>

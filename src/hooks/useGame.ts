@@ -9,7 +9,8 @@ export interface CheckinRow {
   source: 'geo' | 'crew' | 'gm'
   by_player: PlayerId | null
 }
-export interface ResultRow { player_id: PlayerId; pub_n: number; outcome: 'pass' | 'fail' }
+export interface ResultRow { player_id: PlayerId; pub_n: number; outcome: 'pass' | 'fail'; set_at: string }
+export interface Settings { announcement: string | null; announced_at: string | null }
 export interface JailRow { player_id: PlayerId; last_pub: number | null; since: string; released_at: string | null }
 
 export interface GameState {
@@ -17,6 +18,7 @@ export interface GameState {
   checkins: CheckinRow[]
   results: ResultRow[]
   jail: JailRow[]
+  settings: Settings
   /** Highest pub each player has reached (0 = not started) */
   lastPub: Record<PlayerId, number>
   visited: Record<PlayerId, Set<number>>
@@ -30,18 +32,21 @@ export function useGame(enabled = true): GameState {
   const [checkins, setCheckins] = useState<CheckinRow[]>([])
   const [results, setResults] = useState<ResultRow[]>([])
   const [jail, setJail] = useState<JailRow[]>([])
+  const [settings, setSettings] = useState<Settings>({ announcement: null, announced_at: null })
   const [loaded, setLoaded] = useState(false)
 
   const reload = useCallback(async () => {
     if (!supabase) return
-    const [c, r, j] = await Promise.all([
+    const [c, r, j, s] = await Promise.all([
       supabase.from('checkins').select('player_id,pub_n,at,source,by_player'),
-      supabase.from('results').select('player_id,pub_n,outcome'),
+      supabase.from('results').select('player_id,pub_n,outcome,set_at'),
       supabase.from('jail').select('player_id,last_pub,since,released_at'),
+      supabase.from('settings').select('announcement,announced_at').eq('id', 1).maybeSingle(),
     ])
     if (c.data) setCheckins(c.data as CheckinRow[])
     if (r.data) setResults(r.data as ResultRow[])
     if (j.data) setJail(j.data as JailRow[])
+    if (s.data) setSettings(s.data as Settings)
     setLoaded(true)
   }, [])
 
@@ -55,6 +60,7 @@ export function useGame(enabled = true): GameState {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'checkins' }, reload)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'results' }, reload)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'jail' }, reload)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'settings' }, reload)
       .subscribe()
     // Belt and braces: refetch when the app comes back to the foreground, and every minute.
     const vis = () => document.visibilityState === 'visible' && reload()
@@ -71,11 +77,16 @@ export function useGame(enabled = true): GameState {
     const visited = Object.fromEntries(PLAYERS.map((p) => [p.id, new Set<number>()])) as Record<PlayerId, Set<number>>
     for (const c of checkins) visited[c.player_id]?.add(c.pub_n)
     const lastPub = Object.fromEntries(PLAYERS.map((p) => [p.id, Math.max(0, ...visited[p.id])])) as Record<PlayerId, number>
-    const inJail = new Set(jail.filter((j) => !j.released_at).map((j) => j.player_id))
+    // Checking in anywhere after being jailed counts as escaping: no server round trip needed
+    const lastAt: Record<string, string> = {}
+    for (const c of checkins) if (!lastAt[c.player_id] || c.at > lastAt[c.player_id]) lastAt[c.player_id] = c.at
+    const inJail = new Set(
+      jail.filter((j) => !j.released_at && !(lastAt[j.player_id] && lastAt[j.player_id] > j.since)).map((j) => j.player_id),
+    )
     const resMap = new Map(results.map((r) => [`${r.player_id}:${r.pub_n}`, r.outcome]))
     return {
-      loaded, checkins, results, jail, lastPub, visited, inJail, reload,
+      loaded, checkins, results, jail, settings, lastPub, visited, inJail, reload,
       result: (p: PlayerId, n: number) => resMap.get(`${p}:${n}`),
     }
-  }, [loaded, checkins, results, jail, reload])
+  }, [loaded, checkins, results, jail, settings, reload])
 }
