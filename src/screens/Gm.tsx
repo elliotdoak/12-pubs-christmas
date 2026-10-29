@@ -528,8 +528,9 @@ function PlayersTab({ flash }: { flash: (m: string) => void }) {
             const row = players?.find((r) => r.id === p.id)
             const s = seen[p.id]
             return (
-              <li key={p.id} className="border-b-2 border-dashed border-[#CFC6B6] px-3 py-2 last:border-0">
-                <div className="flex items-center gap-3">
+              <li key={p.id} className={`border-b-2 border-dashed border-[#CFC6B6] px-3 py-2 last:border-0 ${jailed ? 'bg-[#D9D4CB]' : ''}`}>
+                {/* Jailed players fade out so the GM can see at a glance who's still in the game */}
+                <div className={`flex items-center gap-3 ${jailed ? 'opacity-60 grayscale' : ''}`}>
                   <input
                     type="checkbox"
                     checked={sel.has(p.id)}
@@ -540,6 +541,7 @@ function PlayersTab({ flash }: { flash: (m: string) => void }) {
                   <AvatarBox id={p.id} size={36} />
                   <div className="min-w-0 flex-1">
                     <b className="text-[16px]">{p.name}</b>
+                    {jailed && <span className="tag ml-2 bg-ink text-white">IN JAIL</span>}
                     <div className={`text-[13px] leading-[17px] ${jailed ? 'text-red' : 'text-muted'}`}>
                       {jailed ? `Sleepy Jail · last pub ${n || '-'}` : n ? `Pub ${n} · ${pubByN(n).name}` : 'Not started'}
                       {row && !row.has_pin && ' · not joined'}
