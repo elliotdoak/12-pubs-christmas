@@ -8,7 +8,7 @@ import { sprite, type PlayerId } from '../data/crawl'
  */
 export function Screen({ children, className = '' }: { children: ReactNode; className?: string }) {
   return (
-    <div className={`mx-auto flex min-h-dvh w-full max-w-[430px] flex-col ${className}`} style={{ paddingTop: 'env(safe-area-inset-top)' }}>
+    <div className={`relative mx-auto flex min-h-dvh w-full max-w-[430px] flex-col ${className}`} style={{ paddingTop: 'env(safe-area-inset-top)' }}>
       {children}
     </div>
   )

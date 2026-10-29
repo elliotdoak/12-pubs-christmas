@@ -53,7 +53,8 @@ export function TabBar() {
 /** Screens that open with the knitted band; the pint sits just below it there. */
 const KNIT_TOP = ['/lobby', '/scores', '/photos', '/costumes']
 
-/** Drunk Eyes toggle: tap to go OFF > TIPSY > STEAMING > BLOOTERED and back. Hidden on the GM screen. */
+/** Drunk Eyes toggle: tap to go OFF > TIPSY > STEAMING > BLOOTERED and back. Hidden on the GM screen.
+ *  Pinned to the top of the page, so it scrolls away with the header. */
 function DrunkButton() {
   const { level, cycle } = useDrunk()
   const { pathname } = useLocation()
@@ -65,8 +66,8 @@ function DrunkButton() {
       onClick={cycle}
       aria-pressed={level > 0}
       aria-label={`Drunk Eyes: ${DRUNK_LEVELS[level].toLowerCase()}. Tap to change.`}
-      className="fixed z-20 flex w-[48px] flex-col items-center gap-[2px] bg-transparent p-0"
-      style={{ top: `calc(env(safe-area-inset-top) + ${below}px)`, right: 'max(8px, calc((100vw - 430px) / 2 + 8px))' }}
+      className="absolute z-20 flex w-[48px] flex-col items-center gap-[2px] bg-transparent p-0"
+      style={{ top: `calc(env(safe-area-inset-top) + ${below}px)`, right: 8 }}
     >
       <img src="/sprites/map/lager.svg" alt="" width={48} height={48} className={`pixel ${level ? 'anim-bob' : ''}`} />
       <span className="flex gap-[3px]" aria-hidden="true">
