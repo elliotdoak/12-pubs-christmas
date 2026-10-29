@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
+import { gameNow } from '../data/crawl'
 
 export function useCountdown(target: string) {
   const end = new Date(target).getTime()
-  const [now, setNow] = useState(() => Date.now())
+  const [now, setNow] = useState(() => gameNow())
 
   useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), 1000)
+    const id = setInterval(() => setNow(gameNow()), 1000)
     return () => clearInterval(id)
   }, [])
 

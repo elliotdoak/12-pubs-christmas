@@ -9,7 +9,7 @@ import { useGameCtx } from '../lib/game'
 import { useSession } from '../lib/session'
 import { supabase } from '../lib/supabase'
 import { thumbPath } from '../lib/photos'
-import { PLAYERS, PUBS, SCORING, pubByN, type PlayerId } from '../data/crawl'
+import { PLAYERS, PUBS, SCORING, at, clockTime, gameNow, niceTime, pubByN, setGameClock, startsAt, type PlayerId } from '../data/crawl'
 
 export default function Gm() {
   const { isGm } = useSession()
@@ -579,6 +579,42 @@ function PlayersTab({ flash }: { flash: (m: string) => void }) {
 
 /* ---------------- TESTING ---------------- */
 
+/** Live practice clock, with jumps to kick-off or any pub's arrival time. */
+function GameClock() {
+  const [, tick] = useState(0)
+  useEffect(() => {
+    const id = setInterval(() => tick((n) => n + 1), 1000)
+    return () => clearInterval(id)
+  }, [])
+  const t = gameNow()
+  const jump = (v: string) => {
+    if (!v) return
+    setGameClock(Number(v))
+    tick((n) => n + 1)
+  }
+  return (
+    <div className="flex flex-col gap-2 border-t-4 border-ink p-3">
+      <div className="flex items-center justify-between bg-ink px-3 py-2 font-pix text-[10px] text-white">
+        <span>GAME CLOCK</span>
+        <span className="text-yolk">
+          {new Date(t).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'Europe/London' }).toUpperCase()} · {clockTime(t).toUpperCase()}
+        </span>
+      </div>
+      <label className="flex items-center gap-2 text-[15px]">
+        <span className="shrink-0">Jump to</span>
+        <select value="" onChange={(e) => jump(e.target.value)} className="min-w-0 flex-1 border-2 border-ink bg-white p-2 text-[15px]">
+          <option value="">Pick a time…</option>
+          <option value={startsAt() - 5 * 60_000}>5 mins before kick-off</option>
+          <option value={startsAt()}>Kick-off · 12.30pm</option>
+          {PUBS.slice(1).map((p) => (
+            <option key={p.n} value={at(p.arrive)}>{p.n}. {p.name} · {niceTime(p.arrive)}</option>
+          ))}
+        </select>
+      </label>
+    </div>
+  )
+}
+
 function TestingTab({ flash, onExit }: { flash: (m: string) => void; onExit: () => void }) {
   const { game, practice, setPractice } = useGameCtx()
   const [open, setOpen] = useState(false)
@@ -614,8 +650,9 @@ function TestingTab({ flash, onExit }: { flash: (m: string) => void; onExit: () 
       <Panel title="PRACTICE MODE">
         <label className="flex items-start gap-3 p-3 text-[16px] leading-[20px]">
           <input type="checkbox" checked={practice} onChange={(e) => setPractice(e.target.checked)} className="mt-[2px] h-5 w-5 shrink-0 accent-[var(--color-pine)]" />
-          Today plays as game day on this phone: auto check-in on, scores unlocked, and the timetable runs on today's clock, so each pub opens for check-in at its real time. The real date stays 28 November. Turn it off when you're done.
+          Jumps this phone to Saturday 28 November, 12.30pm, and runs the clock from there. The app behaves exactly as on the night. Other phones aren't affected. Turn it off when you're done.
         </label>
+        {practice && <GameClock />}
       </Panel>
 
       <Panel title="FULL RESET" hint="Can't be undone">

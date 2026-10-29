@@ -11,7 +11,7 @@ export function Countdown() {
   ]
   return (
     <div className="flex flex-col items-center gap-3">
-      {isPractice() && <div className="tag bg-yolk text-ink">PRACTICE · TODAY IS GAME DAY</div>}
+      {isPractice() && <div className="tag bg-yolk text-ink">PRACTICE · GAME CLOCK RUNNING</div>}
       <div className="font-pix text-[10px] text-white">{t.done ? "IT'S GAME DAY" : 'GAME STARTS IN'}</div>
       <div
         className="grid w-full grid-cols-4 gap-2"

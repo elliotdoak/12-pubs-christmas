@@ -3,8 +3,7 @@ import { supabase } from './supabase'
 import { useSession } from './session'
 import { useGame, type GameState } from '../hooks/useGame'
 import { decide, type CheckinDecision, type Fix } from './geo'
-import { load, save } from './storage'
-import { isGameDay, setPracticeMode, type Pub, type PlayerId } from '../data/crawl'
+import { isGameDay, isPractice, setPracticeMode, type Pub, type PlayerId } from '../data/crawl'
 
 export type GeoStatus = 'off' | 'waiting' | 'tracking' | 'denied' | 'unsupported'
 
@@ -27,7 +26,7 @@ const LOCATION_EVERY_MS = 30_000
 export function GameProvider({ children }: { children: ReactNode }) {
   const { playerId, session, refresh } = useSession()
   const game = useGame(!!session)
-  const [practice, setPracticeState] = useState(() => load('practice', false))
+  const [practice, setPracticeState] = useState(() => isPractice())
   const [status, setStatus] = useState<GeoStatus>('off')
   const [fix, setFix] = useState<Fix | null>(null)
   const [decision, setDecision] = useState<CheckinDecision | null>(null)
@@ -41,7 +40,6 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const active = !!playerId && isGameDay()
 
   const setPractice = (on: boolean) => {
-    save('practice', on)
     setPracticeMode(on)
     setPracticeState(on)
   }

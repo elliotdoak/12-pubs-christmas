@@ -1,4 +1,4 @@
-import { load } from '../lib/storage'
+import { load, save } from '../lib/storage'
 // Static crawl data. The live game state (check-ins, results, photos) lives in Supabase.
 // Times are local Glasgow time on Saturday 28 November 2026 (GMT, so UTC+0).
 
@@ -137,24 +137,40 @@ export const JAIL = { left: 143, top: 534, width: 104 }
 
 const DAY = '2026-11-28'
 
-/* ---- Practice mode: on this phone, today plays as game day (the real date stays 28 Nov) ---- */
-let practice = load('practice', false)
-export const setPracticeMode = (on: boolean) => {
-  practice = on
-}
-export const isPractice = () => practice
-/** Today's date in Glasgow, as YYYY-MM-DD */
-const today = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/London' }).format(new Date())
-/** The date the game runs on: 28 November, or today in practice mode. */
-export const eventDay = () => (practice ? today() : DAY)
 /** Glasgow is on GMT in late November, so local time = UTC. */
-export const at = (hhmm: string) => new Date(`${eventDay()}T${hhmm}:00Z`).getTime()
+export const at = (hhmm: string) => new Date(`${DAY}T${hhmm}:00Z`).getTime()
 
-export const isGameDay = (now = Date.now()) =>
-  new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/London' }).format(new Date(now)) === eventDay()
-
-/** Kick-off (first pub's arrival) as a timestamp. Moves to today in practice mode. */
+/** Kick-off: 28 November, 12.30pm */
 export const startsAt = () => at(PUBS[0].arrive)
+
+/*
+ * ---- Practice mode: a game clock on this phone only ----
+ * Switching it on jumps this phone to Saturday 28 November, 12.30pm, and the clock then runs
+ * forward in real time. Everything time-based (countdown, check-in windows, the map clock)
+ * reads gameNow(), so the app behaves exactly as it will on the night. Real data
+ * (check-ins, photos) is still stamped with the real time.
+ */
+let practiceStart: number | null = load<number | null>('practiceStart', null) // real ms when the game clock read kick-off
+export const isPractice = () => practiceStart !== null
+
+/** Turn practice on (clock starts at kick-off) or off. */
+export const setPracticeMode = (on: boolean) => {
+  practiceStart = on ? Date.now() : null
+  save('practiceStart', practiceStart)
+}
+
+/** Move the practice clock to a given game time, e.g. a pub's arrival. */
+export const setGameClock = (gameTime: number) => {
+  if (practiceStart === null) return
+  practiceStart = Date.now() - (gameTime - startsAt())
+  save('practiceStart', practiceStart)
+}
+
+/** "Now" as the game sees it: the real time, or the practice clock. */
+export const gameNow = () => (practiceStart === null ? Date.now() : startsAt() + (Date.now() - practiceStart))
+
+export const isGameDay = (now = gameNow()) =>
+  new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/London' }).format(new Date(now)) === DAY
 
 /** "3.05pm" for a timestamp, Glasgow time */
 export const clockTime = (t: number) =>

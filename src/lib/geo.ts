@@ -1,4 +1,4 @@
-import { PUBS, gateTime, isGameDay, type Pub } from '../data/crawl'
+import { PUBS, gameNow, gateTime, isGameDay, type Pub } from '../data/crawl'
 
 /** Distance in metres between two points (haversine). */
 export function metres(aLat: number, aLng: number, bLat: number, bLng: number) {
@@ -34,9 +34,9 @@ const UNUSABLE_ACCURACY = 150 // worse than this, ignore the fix
  *  - only pubs you haven't checked in to yet, and only ahead of your last pub (skipping ahead is fine)
  *  - it must be the nearest such pub, and within its radius (with some GPS wobble forgiven)
  *  - on game day, not before the pub's gate time (stops next-door pubs firing early)
- *  - in practice mode the timetable runs on today's date, so the same gates apply
+ *  - in practice mode the phone runs a game clock from 28 Nov 12.30pm, so the same gates apply
  */
-export function decide(fix: Fix, visited: Set<number>, now = Date.now()): CheckinDecision {
+export function decide(fix: Fix, visited: Set<number>, now = gameNow()): CheckinDecision {
   const last = Math.max(0, ...visited)
   const candidates = PUBS.filter((p) => p.n > last && !visited.has(p.n))
   if (!candidates.length) return { pub: null, nearest: null, reason: 'done' }

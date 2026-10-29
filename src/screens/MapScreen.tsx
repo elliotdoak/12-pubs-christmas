@@ -8,7 +8,7 @@ import { useScale } from '../hooks/useScale'
 import { useGameCtx } from '../lib/game'
 import { useSession } from '../lib/session'
 import { fmtDistance } from '../lib/geo'
-import { JAIL, PLAYERS, PUBS, clockTime, gateTime, isGameDay, niceTime, sprite, type PlayerId } from '../data/crawl'
+import { JAIL, PLAYERS, PUBS, clockTime, gameNow, gateTime, isGameDay, niceTime, sprite, type PlayerId } from '../data/crawl'
 
 const MAP_W = 390
 const MAP_H = 624
@@ -170,7 +170,7 @@ function GeoChip({ status, active, practice, nearest, reason }: {
 }
 
 function useClock() {
-  const fmt = () => new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/London' })
+  const fmt = () => new Date(gameNow()).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/London' })
   const [t, setT] = useState(fmt)
   useEffect(() => {
     const id = setInterval(() => setT(fmt()), 15_000)
