@@ -48,14 +48,9 @@ function GmLogin() {
 /* ---------------- shared bits ---------------- */
 
 const name = (id: PlayerId) => PLAYERS.find((p) => p.id === id)?.name ?? id
-const clock = (iso: string) => new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/London' })
 const ago = (iso: string) => {
   const m = Math.round((Date.now() - new Date(iso).getTime()) / 60_000)
   return m < 1 ? 'just now' : m < 60 ? `${m} min ago` : `${Math.floor(m / 60)}h ${m % 60}m ago`
-}
-
-async function log(message: string) {
-  await supabase?.from('gm_log').insert({ message })
 }
 
 function Btn({ children, onClick, tone = 'white', disabled, pressed, label }: {
@@ -135,7 +130,7 @@ function ControlRoom() {
 
       <div className="mx-[14px] mb-3 grid grid-cols-2 gap-2">
         <Stat k="JOINED" v={`${joined}/${PLAYERS.length}`} />
-        <Stat k="OUT" v={`${out}`} />
+        <Stat k="ACTIVE" v={`${out}`} />
         <Stat k="SLEEPY JAIL" v={`${game.inJail.size}`} hot={game.inJail.size > 0} />
         <Stat k="CROWD AT" v={crowdPub ? `PUB ${crowdPub}` : 'PRE-GAME'} />
       </div>
@@ -179,24 +174,13 @@ function Stat({ k, v, hot }: { k: string; v: string; hot?: boolean }) {
   )
 }
 
-/* ---------------- LIVE: announcements + activity ---------------- */
+/* ---------------- LIVE: announcements ---------------- */
 
-interface Feed { at: string; text: string; tone: 'pine' | 'red' | 'royal' | 'muted' }
 
 function LiveTab({ flash }: { flash: (m: string) => void }) {
   const { game } = useGameCtx()
   const [text, setText] = useState('')
   const [busy, setBusy] = useState(false)
-  const [gmLog, setGmLog] = useState<{ message: string; created_at: string }[]>([])
-
-  useEffect(() => {
-    if (!supabase) return
-    const sb = supabase
-    const load = () => sb.from('gm_log').select('message,created_at').order('created_at', { ascending: false }).limit(30).then(({ data }) => data && setGmLog(data))
-    load()
-    const id = setInterval(load, 20_000)
-    return () => clearInterval(id)
-  }, [game.checkins, game.results])
 
   const announce = async (msg: string | null) => {
     if (!supabase) return
@@ -207,29 +191,10 @@ function LiveTab({ flash }: { flash: (m: string) => void }) {
       .eq('id', 1)
     setBusy(false)
     if (error) return flash('COULD NOT SEND')
-    if (msg) {
-      log(`Announced: "${msg}"`)
-      setText('')
-    }
+    if (msg) setText('')
     game.reload()
     flash(msg ? 'SENT TO EVERYONE' : 'BANNER CLEARED')
   }
-
-  const feed: Feed[] = useMemo(() => {
-    const f: Feed[] = []
-    for (const c of game.checkins) {
-      const how = c.source === 'gm' ? ' (by GM)' : c.source === 'crew' && c.by_player ? ` (by ${name(c.by_player)})` : ''
-      f.push({ at: c.at, text: `${name(c.player_id)} checked in at ${pubByN(c.pub_n).name}${how}`, tone: 'pine' })
-    }
-    for (const r of game.results) f.push({ at: r.set_at, text: `${name(r.player_id)} ${r.outcome === 'pass' ? 'passed' : 'failed'} at ${pubByN(r.pub_n).name}`, tone: r.outcome === 'pass' ? 'pine' : 'red' })
-    for (const j of game.jail) {
-      f.push({ at: j.since, text: `${name(j.player_id)} sent to Sleepy Jail${j.last_pub ? ` (last seen at ${pubByN(j.last_pub).name})` : ''}`, tone: 'red' })
-      if (j.released_at) f.push({ at: j.released_at, text: `${name(j.player_id)} released from Sleepy Jail`, tone: 'royal' })
-    }
-    for (const b of game.bonuses) f.push({ at: b.created_at, text: `${name(b.player_id)} ${b.points > 0 ? '+' : ''}${b.points}: ${b.reason}`, tone: b.points < 0 ? 'red' : 'royal' })
-    for (const g of gmLog) f.push({ at: g.created_at, text: g.message, tone: 'muted' })
-    return f.sort((a, b) => b.at.localeCompare(a.at)).slice(0, 40)
-  }, [game.checkins, game.results, game.jail, game.bonuses, gmLog])
 
   const current = game.settings.announcement
 
@@ -261,21 +226,6 @@ function LiveTab({ flash }: { flash: (m: string) => void }) {
           </div>
           <p className="m-0 text-[13px] leading-[17px] text-muted">Shows as a banner in the app. Push notifications to locked phones come in the next build.</p>
         </div>
-      </Panel>
-
-      <Panel title="ACTIVITY" hint="Newest first">
-        {feed.length ? (
-          <ul className="m-0 max-h-[420px] list-none overflow-y-auto p-0">
-            {feed.map((e, i) => (
-              <li key={i} className="flex gap-3 border-b-2 border-dashed border-[#CFC6B6] px-3 py-2 last:border-0">
-                <span className="shrink-0 font-pix text-[8px] leading-[18px] text-muted">{clock(e.at)}</span>
-                <span className={`text-[15px] leading-[19px] ${e.tone === 'red' ? 'text-red' : e.tone === 'royal' ? 'text-royal' : e.tone === 'muted' ? 'text-muted' : ''}`}>{e.text}</span>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="m-0 p-3 text-[15px] text-muted">Nothing yet. Check-ins, results and jail time appear here as they happen.</p>
-        )}
       </Panel>
     </>
   )
@@ -479,7 +429,6 @@ function PlayersTab({ flash }: { flash: (m: string) => void }) {
     const n = game.lastPub[id]
     if (!supabase || !n) return
     const { error } = await supabase.from('checkins').delete().eq('player_id', id).eq('pub_n', n)
-    if (!error) log(`Undid ${name(id)}'s check-in at ${pubByN(n).name}`)
     await game.reload()
     flash(error ? 'COULD NOT UNDO' : `${name(id).toUpperCase()} BACK TO PUB ${n - 1}`)
   }
