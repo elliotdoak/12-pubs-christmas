@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Avatar, AvatarBox, Brand, EventLine, Knit, Screen, Title } from '../components/ui'
+import { Avatar, AvatarBox, Brand, Knit, Screen, Title } from '../components/ui'
 import { Countdown } from '../components/Countdown'
 import { CostumeSheet } from './Costumes'
 import { TabBar } from '../components/TabBar'
@@ -53,7 +53,6 @@ export default function Lobby() {
 
       <div className="flex flex-col gap-3 px-5 pb-4">
         <Countdown />
-        <EventLine />
 
         <div className="flex items-center gap-3 border-4 border-ink bg-wool p-2 text-ink">
           <Avatar id={me.id} size={36} bob />

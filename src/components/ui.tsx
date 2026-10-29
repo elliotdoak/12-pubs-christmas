@@ -88,7 +88,3 @@ export function Footer({ children }: { children: ReactNode }) {
     </div>
   )
 }
-
-export function EventLine() {
-  return <div className="text-center font-body text-[15px] text-white">Old College Bar · Sat 28 Nov · 12.30pm</div>
-}
