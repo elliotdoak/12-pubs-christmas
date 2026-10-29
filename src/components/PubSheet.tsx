@@ -2,7 +2,7 @@ import { Sheet, SheetClose } from './Sheet'
 import { useState } from 'react'
 import { Avatar } from './ui'
 import { Lightbox, Polaroid, SnapButton, thumbPath } from './PhotoBits'
-import { useSignedUrls } from '../lib/photos'
+import { PHOTO_LIMIT, useSignedUrls } from '../lib/photos'
 import type { PhotoRow } from '../hooks/useGame'
 import { useGameCtx } from '../lib/game'
 import { useSession } from '../lib/session'
@@ -103,13 +103,19 @@ function Box({ label, tone, children }: { label: string; tone: 'pine' | 'red' | 
 function PubPhotos({ n }: { n: number }) {
   const { game } = useGameCtx()
   const [open, setOpen] = useState<PhotoRow | null>(null)
+  const { playerId } = useSession()
   const list = game.photos.filter((p) => p.pub_n === n)
+  const mineHere = list.filter((p) => p.player_id === playerId).length
   const url = useSignedUrls(list.slice(0, 8).map((p) => thumbPath(p.path)))
   return (
     <div className="mx-4 mt-3 border-[3px] border-ink bg-white p-3">
       <div className="mb-2 flex items-center justify-between">
         <span className="font-pix text-[9px] text-royal">PHOTOS FROM HERE ({list.length})</span>
-        <SnapButton pub={n} className="border-2 border-ink bg-yolk px-2 py-[6px] font-pix text-[8px]">+ SNAP</SnapButton>
+        {mineHere >= PHOTO_LIMIT ? (
+          <span className="border-2 border-ink bg-white px-2 py-[6px] font-pix text-[8px] text-muted">{PHOTO_LIMIT}/{PHOTO_LIMIT} POSTED</span>
+        ) : (
+          <SnapButton pub={n} className="border-2 border-ink bg-yolk px-2 py-[6px] font-pix text-[8px]">+ SNAP ({mineHere}/{PHOTO_LIMIT})</SnapButton>
+        )}
       </div>
       {list.length ? (
         <div className="grid grid-cols-4 gap-2">

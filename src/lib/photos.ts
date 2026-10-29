@@ -7,6 +7,9 @@ const FULL_PX = 1280
 const THUMB_PX = 420
 const SIGN_FOR = 60 * 60 * 24 // seconds
 
+/** Max photos one person can post at one pub (or before the crawl). The database enforces it too. */
+export const PHOTO_LIMIT = 3
+
 export const thumbPath = (path: string) => path.replace(/\.jpg$/, '_t.jpg')
 
 /** Shrink a phone photo to a sensible JPEG. Keeps the night's data use (and upload time on 4G) low. */
@@ -31,7 +34,7 @@ export interface NewPhoto {
   tagged: PlayerId[]
 }
 
-export type UploadError = 'unreadable' | 'upload' | 'save'
+export type UploadError = 'unreadable' | 'upload' | 'save' | 'limit'
 
 export async function uploadPhoto(p: NewPhoto): Promise<{ ok: true } | { ok: false; error: UploadError }> {
   if (!supabase) return { ok: false, error: 'upload' }
@@ -56,7 +59,7 @@ export async function uploadPhoto(p: NewPhoto): Promise<{ ok: true } | { ok: fal
   })
   if (error) {
     await store.remove([path, thumbPath(path)])
-    return { ok: false, error: 'save' }
+    return { ok: false, error: /photo_limit/.test(error.message) ? 'limit' : 'save' }
   }
   return { ok: true }
 }
@@ -73,6 +76,7 @@ export const UPLOAD_MESSAGES: Record<UploadError, string> = {
   unreadable: "Couldn't read that photo. Try another, or take a new one.",
   upload: 'Upload failed. Check your signal and try again.',
   save: 'Uploaded, but it didn’t save to the wall. Try again.',
+  limit: `You've already posted ${PHOTO_LIMIT} photos here. Delete one to post another.`,
 }
 
 /* ---------- signed links, cached for the session ---------- */

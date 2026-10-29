@@ -3,7 +3,7 @@ import { Sheet, SheetClose } from './Sheet'
 import { Avatar } from './ui'
 import { useGameCtx } from '../lib/game'
 import { useSession } from '../lib/session'
-import { UPLOAD_MESSAGES, uploadPhoto } from '../lib/photos'
+import { PHOTO_LIMIT, UPLOAD_MESSAGES, uploadPhoto } from '../lib/photos'
 import { PLAYERS, PUBS, type PlayerId } from '../data/crawl'
 
 /** Caption, pub and who's-in-it for a photo the player just picked, then upload. */
@@ -12,7 +12,13 @@ export function SnapSheet({ file, defaultPub, onClose }: { file: File; defaultPu
   const { game } = useGameCtx()
   const mine = playerId ? game.visited[playerId] : new Set<number>()
   const reached = PUBS.filter((p) => mine.has(p.n))
-  const [pub, setPub] = useState<number | null>(defaultPub ?? (playerId ? game.lastPub[playerId] || null : null))
+  // How many photos I've already posted at each stop (0 = before the crawl)
+  const used = (n: number | null) => game.photos.filter((p) => p.player_id === playerId && (p.pub_n ?? 0) === (n ?? 0)).length
+  const full = (n: number | null) => used(n) >= PHOTO_LIMIT
+  const start = defaultPub ?? (playerId ? game.lastPub[playerId] || null : null)
+  // If the obvious stop is full, start on one that isn't
+  const firstOpen = [start, ...[...reached].reverse().map((p) => p.n), null].find((n) => !full(n)) ?? start
+  const [pub, setPub] = useState<number | null>(firstOpen)
   const [caption, setCaption] = useState('')
   const [tagged, setTagged] = useState<Set<PlayerId>>(new Set())
   const [busy, setBusy] = useState(false)
@@ -71,10 +77,16 @@ export function SnapSheet({ file, defaultPub, onClose }: { file: File; defaultPu
             onChange={(e) => setPub(e.target.value ? Number(e.target.value) : null)}
             className="border-2 border-ink bg-white p-2 text-[16px]"
           >
-            <option value="">Before the crawl</option>
-            {reached.map((p) => <option key={p.n} value={p.n}>{p.n}. {p.name}</option>)}
+            <option value="" disabled={full(null)}>Before the crawl ({used(null)}/{PHOTO_LIMIT})</option>
+            {reached.map((p) => (
+              <option key={p.n} value={p.n} disabled={full(p.n)}>
+                {p.n}. {p.name} ({used(p.n)}/{PHOTO_LIMIT})
+              </option>
+            ))}
           </select>
-          <span className="text-[13px] leading-[17px] text-muted">You can post to pubs you've reached.</span>
+          <span className={`text-[13px] leading-[17px] ${full(pub) ? 'text-red' : 'text-muted'}`}>
+            {full(pub) ? `You've posted ${PHOTO_LIMIT} here already. Pick another stop, or delete one first.` : `Up to ${PHOTO_LIMIT} photos per pub. You can post to pubs you've reached.`}
+          </span>
         </label>
 
         <div className="flex flex-col gap-1">
@@ -99,8 +111,8 @@ export function SnapSheet({ file, defaultPub, onClose }: { file: File; defaultPu
         </div>
 
         {err && <p role="alert" className="m-0 text-[15px] leading-[19px] text-red">{err}</p>}
-        <button type="button" className="btn-big" disabled={busy} onClick={post}>
-          {busy ? 'UPLOADING…' : 'POST IT ▶'}
+        <button type="button" className="btn-big" disabled={busy || full(pub)} onClick={post}>
+          {busy ? 'UPLOADING…' : full(pub) ? 'LIMIT REACHED' : 'POST IT ▶'}
         </button>
       </div>
     </Sheet>
