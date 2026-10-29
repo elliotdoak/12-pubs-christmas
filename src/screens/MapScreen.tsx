@@ -18,10 +18,10 @@ const ART_H = 58
 
 /** Decorative pints dotted on the map (map coordinates, top-left). */
 const DRINKS = [
-  { src: '/sprites/map/stout.svg', left: 46, top: 350 },
-  { src: '/sprites/map/lager.svg', left: 236, top: 228 },
+  { src: '/sprites/map/stout.svg', left: 36, top: 350 },
+  { src: '/sprites/map/lager.svg', left: 226, top: 218 },
 ]
-const DRINK = 44
+const DRINK = 64
 
 export default function MapScreen() {
   const { playerId } = useSession()
