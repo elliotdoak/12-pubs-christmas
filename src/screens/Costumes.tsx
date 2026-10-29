@@ -77,7 +77,8 @@ function Feature({ player, onOpen }: { player: Player; onOpen: () => void }) {
   )
 }
 
-function CostumeSheet({ player, mine, onClose }: { player: Player; mine: boolean; onClose: () => void }) {
+/** Costume details with the original photo. Also opened from the CREW screen. */
+export function CostumeSheet({ player, mine, onClose }: { player: Player; mine: boolean; onClose: () => void }) {
   const c = COSTUMES[player.costume]
   // Duo costumes: show the partner (anyone else wearing the same costume name)
   const partner = PLAYERS.find((p) => p.id !== player.id && COSTUMES[p.costume].name === c.name)

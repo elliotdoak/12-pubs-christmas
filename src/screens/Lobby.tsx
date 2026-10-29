@@ -1,13 +1,14 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Avatar, AvatarBox, Brand, EventLine, Knit, Screen, Title } from '../components/ui'
 import { Countdown } from '../components/Countdown'
+import { CostumeSheet } from './Costumes'
 import { TabBar } from '../components/TabBar'
 import { usePlayers } from '../hooks/usePlayers'
 import { releasePlayer } from '../lib/api'
 import { useSession } from '../lib/session'
 import { isStandalone, locationState, notificationState, type PermState } from '../lib/platform'
-import { COSTUMES, PLAYERS, sprite, type CostumeKey } from '../data/crawl'
+import { COSTUMES, PLAYERS } from '../data/crawl'
 
 export default function Lobby() {
   const nav = useNavigate()
@@ -107,49 +108,7 @@ export default function Lobby() {
       </div>
 
       <TabBar />
-      {showCostume && <CostumeSheet costume={me.costume} onClose={() => setShowCostume(false)} />}
+      {showCostume && <CostumeSheet player={me} mine onClose={() => setShowCostume(false)} />}
     </Screen>
-  )
-}
-
-function CostumeSheet({ costume, onClose }: { costume: CostumeKey; onClose: () => void }) {
-  const c = COSTUMES[costume]
-  const close = useRef<HTMLButtonElement>(null)
-  useEffect(() => {
-    close.current?.focus()
-    const h = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
-    window.addEventListener('keydown', h)
-    return () => window.removeEventListener('keydown', h)
-  }, [onClose])
-
-  return (
-    <div className="fixed inset-0 z-10 flex items-end justify-center bg-ink/70" onClick={onClose}>
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-label="Your costume"
-        className="anim-pop mb-[env(safe-area-inset-bottom)] w-full max-w-[430px] border-4 border-ink bg-wool p-4 text-ink"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-start justify-between">
-          <div className="font-pix text-[9px] text-red">{c.year ? `HALL OF FAME · ${c.year}` : 'HALL OF FAME'}</div>
-          <button ref={close} type="button" onClick={onClose} aria-label="Close" className="border-4 border-ink bg-ink px-2 py-1 font-pix text-[12px] text-white">
-            ✕
-          </button>
-        </div>
-        <div className="mt-3 flex gap-4">
-          <div className="flex h-[124px] w-[124px] shrink-0 items-center justify-center border-[3px] border-ink bg-sky">
-            <img src={sprite.costume(costume)} alt="" width={112} height={112} className="pixel anim-bob" />
-          </div>
-          <div className="flex flex-col gap-2">
-            <h2 className="m-0 font-pix text-[13px] leading-[18px]">{c.name.toUpperCase()}</h2>
-            {c.note && <div className="text-[16px] font-bold">{c.note}</div>}
-            <p className="m-0 text-[15px] leading-[19px] text-muted">
-              {c.year ? `Recreate the ${c.year} original. No swaps.` : 'Costume to be confirmed. Watch this space.'}
-            </p>
-          </div>
-        </div>
-      </div>
-    </div>
   )
 }
