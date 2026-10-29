@@ -52,11 +52,9 @@ export function PubSheet({ n, onClose }: { n: number; onClose: () => void }) {
         </div>
       </div>
 
-      {unlocked && <PubPhotos n={n} />}
-
       {unlocked ? (
         <div className="mx-4 mt-3 flex flex-col gap-3">
-          <Box label="CHALLENGE" tone="pine">{pub.challenge}</Box>
+          <Box label="CHALLENGE" tone="pine" strong>{pub.challenge}</Box>
           <Box label="IF YOU FAIL…" tone="red">{pub.forfeit ?? 'No forfeit set for this pub. Pride is the only casualty.'}</Box>
           {pub.note && <Box label="NOTE" tone="royal">{pub.note}</Box>}
           {cuffs && (
@@ -85,13 +83,21 @@ export function PubSheet({ n, onClose }: { n: number; onClose: () => void }) {
           </p>
         </div>
       )}
+
+      {unlocked && <PubPhotos n={n} />}
     </Sheet>
   )
 }
 
-function Box({ label, tone, children }: { label: string; tone: 'pine' | 'red' | 'royal'; children: React.ReactNode }) {
+function Box({ label, tone, strong, children }: { label: string; tone: 'pine' | 'red' | 'royal'; strong?: boolean; children: React.ReactNode }) {
   const c = { pine: 'text-pine', red: 'text-red', royal: 'text-royal' }[tone]
-  return (
+  // The challenge is what people open the sheet for, so it gets the loudest box
+  return strong ? (
+    <div className="border-4 border-ink bg-white p-3 shadow-[inset_0_0_0_3px_var(--color-pine),4px_4px_0_var(--color-ink)]">
+      <div className={`mb-2 font-pix text-[11px] ${c}`}>{label}</div>
+      <div className="text-[20px] font-bold leading-[26px] text-ink">{children}</div>
+    </div>
+  ) : (
     <div className="border-[3px] border-ink bg-white p-3">
       <div className={`mb-1 font-pix text-[9px] ${c}`}>{label}</div>
       <div className="text-[17px] leading-[22px]">{children}</div>
