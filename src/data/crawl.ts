@@ -111,9 +111,9 @@ export const PUBS: Pub[] = [
   { n: 7, name: 'The Ark', arrive: '16:30', leave: '17:00', stay: '30 mins', challenge: 'Sing song', map: [60, 330], lat: 55.862095, lng: -4.248483, radius: R, address: '46 North Frederick Street, G1 2BS' },
   { n: 8, name: "Max's", arrive: '17:10', leave: '17:40', stay: '30 mins', challenge: 'No talking', map: [198, 322], lat: 55.8595, lng: -4.2522, radius: R, address: '73 Queen Street, G1 3BZ' },
   { n: 9, name: 'The Lab', arrive: '17:45', leave: '18:00', stay: '15 mins', challenge: 'Shot tray relay race', note: 'Send a convoy', map: [334, 334], lat: 55.8595, lng: -4.2538, radius: R, address: '26 Springfield Court, G1 3DQ' },
-  { n: 10, name: 'The Raven', arrive: '18:20', leave: '18:35', stay: '15 mins', challenge: 'No rule. Quick stop.', map: [330, 462], lat: 55.863529, lng: -4.25609, radius: R, address: '81-85 Renfield Street, G2 1LP' },
+  { n: 10, name: 'The Raven', arrive: '18:20', leave: '18:35', stay: '15 mins', challenge: 'No rule. Quick stop.', map: [330, 482], lat: 55.863529, lng: -4.25609, radius: R, address: '81-85 Renfield Street, G2 1LP' },
   { n: 11, name: 'Felsons', arrive: '18:40', leave: '19:40', stay: '1 hr', challenge: 'Killer', map: [194, 454], lat: 55.8652, lng: -4.2565, radius: R, address: '128 Renfield Street, G2 3AL', approx: true },
-  { n: 12, name: 'Supercube', arrive: '19:30', leave: '21:30', stay: 'Until 9.30pm', challenge: 'Final stop: Supercube, 7.30pm to 9.30pm', note: '£136 paid by Hammy', map: [60, 464], lat: 55.8649, lng: -4.2585, radius: R, address: '104 Bath Street, G2 2EN', approx: true },
+  { n: 12, name: 'Supercube', arrive: '19:30', leave: '21:30', stay: 'Until 9.30pm', challenge: 'Final stop: Supercube, 7.30pm to 9.30pm', note: '£136 paid by Hammy', map: [60, 484], lat: 55.8649, lng: -4.2585, radius: R, address: '104 Bath Street, G2 2EN', approx: true },
 ]
 
 export const SCORING = {

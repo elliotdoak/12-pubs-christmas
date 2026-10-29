@@ -16,6 +16,13 @@ const MAP_H = 624
 const ART_W = 72
 const ART_H = 58
 
+/** Decorative pints dotted on the map (map coordinates, top-left). */
+const DRINKS = [
+  { src: '/sprites/map/stout.svg', left: 46, top: 350 },
+  { src: '/sprites/map/lager.svg', left: 236, top: 228 },
+]
+const DRINK = 44
+
 export default function MapScreen() {
   const { playerId } = useSession()
   const { game, geo, active, practice, justCheckedIn } = useGameCtx()
@@ -57,6 +64,10 @@ export default function MapScreen() {
         <div className="absolute left-0 top-0 origin-top-left" style={{ width: MAP_W, height: MAP_H, transform: `scale(${scale})` }}>
           <img src="/sprites/map/ground.svg" alt="" className="pixel absolute left-0 top-0" width={MAP_W} height={MAP_H} />
           <img src="/sprites/map/route.svg" alt="" className="pixel absolute left-0 top-0" width={MAP_W} height={MAP_H} />
+
+          {DRINKS.map((d) => (
+            <img key={d.src} src={d.src} alt="" width={DRINK} height={DRINK} className="pixel pointer-events-none absolute" style={{ left: d.left, top: d.top }} />
+          ))}
 
           {PUBS.map((p) => {
             const [x, y] = p.map
