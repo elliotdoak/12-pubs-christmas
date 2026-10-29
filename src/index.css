@@ -76,6 +76,7 @@ img.pixel { image-rendering: pixelated; display: block; }
 .anim-drop { animation: drop .9s steps(6) both; }
 .anim-pop { animation: pop .5s steps(3) both; }
 .anim-shake { animation: shake .4s steps(4); }
+.anim-ring { animation: shake .6s steps(4) infinite; }
 .anim-flash { animation: flash .8s steps(1) infinite; }
 .anim-hop { animation: hop .5s steps(2) infinite; }
 .anim-slideup { animation: slideup .25s steps(5) both; }
@@ -106,6 +107,10 @@ img.pixel { image-rendering: pixelated; display: block; }
   70% { opacity: 1; transform: translate(-50%, -4px) rotate(4deg); }
   100% { opacity: 0; transform: translate(-50%, -12px); }
 }
+
+/* Leave alarm: background flips red and yellow */
+.anim-alarm { animation: alarm .7s steps(1) infinite; }
+@keyframes alarm { 50% { background: var(--color-yolk); color: var(--color-ink); } }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }

@@ -4,6 +4,7 @@ import { SessionProvider, useSession } from './lib/session'
 import { GameProvider } from './lib/game'
 import { DrunkProvider } from './lib/drunk'
 import { Announcement } from './components/Announcement'
+import { LeaveAlarm } from './components/LeaveAlarm'
 import { isGameDay } from './data/crawl'
 import { load } from './lib/storage'
 import { Logo, Screen } from './components/ui'
@@ -38,6 +39,7 @@ export default function App() {
         </Routes>
         </DrunkProvider>
         <Announcement />
+        <LeaveAlarm />
         <StatusBarCover />
       </BrowserRouter>
       </GameProvider>

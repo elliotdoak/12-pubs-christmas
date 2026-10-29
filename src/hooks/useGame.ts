@@ -10,7 +10,7 @@ export interface CheckinRow {
   by_player: PlayerId | null
 }
 export interface ResultRow { player_id: PlayerId; pub_n: number; outcome: 'pass' | 'fail'; set_at: string }
-export interface Settings { announcement: string | null; announced_at: string | null; reset_at?: string | null }
+export interface Settings { announcement: string | null; announced_at: string | null; reset_at?: string | null; alarm_at?: string | null }
 export interface BonusRow { id: number; player_id: PlayerId; points: number; reason: string; created_at: string }
 export interface PhotoRow { id: string; player_id: PlayerId; pub_n: number | null; path: string; caption: string | null; tagged: PlayerId[]; created_at: string }
 export interface JailRow { player_id: PlayerId; last_pub: number | null; since: string; released_at: string | null }

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { Avatar, AvatarBox, Screen } from '../components/ui'
 import { PinPad } from '../components/PinPad'
 import { TabBar } from '../components/TabBar'
+import { ALARM_LIVE_MS } from '../lib/sound'
 import { usePlayers } from '../hooks/usePlayers'
 import { CLAIM_MESSAGES, claimGm, gmResetPin, releaseGm } from '../lib/api'
 import { useGameCtx } from '../lib/game'
@@ -198,8 +199,46 @@ function LiveTab({ flash }: { flash: (m: string) => void }) {
 
   const current = game.settings.announcement
 
+  // Leave alarm: sounds on every open phone for up to 10 minutes, or until stopped
+  const [armed, setArmed] = useState(false)
+  const alarmAt = game.settings.alarm_at ?? null
+  const alarmLive = !!alarmAt && Date.now() - new Date(alarmAt).getTime() < ALARM_LIVE_MS
+  const alarm = async (on: boolean) => {
+    if (!supabase) return
+    setBusy(true)
+    const { error } = await supabase.from('settings').update({ alarm_at: on ? new Date().toISOString() : null, updated_at: new Date().toISOString() }).eq('id', 1)
+    setBusy(false)
+    setArmed(false)
+    if (error) return flash(on ? 'ALARM FAILED' : 'COULD NOT STOP')
+    game.reload()
+    flash(on ? 'ALARM SOUNDED' : 'ALARM STOPPED')
+  }
+
   return (
     <>
+      <Panel title="LEAVE ALARM" hint="Time to move on">
+        <div className="flex flex-col gap-2 p-3">
+          {alarmLive ? (
+            <>
+              <div className="anim-blink border-2 border-ink bg-red p-2 text-center font-pix text-[10px] text-white">
+                ALARM SOUNDING · SET OFF AT {new Date(alarmAt!).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/London' })}
+              </div>
+              <button type="button" className="btn-big sm" disabled={busy} onClick={() => alarm(false)}>STOP THE ALARM</button>
+            </>
+          ) : armed ? (
+            <div className="flex gap-2">
+              <button type="button" className="btn-big sm flex-1 !bg-red !text-white" disabled={busy} onClick={() => alarm(true)}>YES, SOUND IT</button>
+              <button type="button" className="btn-big sm !w-auto !bg-white" onClick={() => setArmed(false)}>CANCEL</button>
+            </div>
+          ) : (
+            <button type="button" className="btn-big !bg-red !text-white" onClick={() => setArmed(true)}>SOUND THE ALARM</button>
+          )}
+          <p className="m-0 text-[13px] leading-[17px] text-muted">
+            Every phone with the app open flashes, buzzes and sirens "Drink up, we're leaving now", with the next pub. It keeps going until they tap ON MY WAY or you stop it, and anyone who opens the app in the next 10 minutes gets it too. Locked or closed phones miss it until push notifications are added.
+          </p>
+        </div>
+      </Panel>
+
       <Panel title="ANNOUNCE" hint="Banner on every phone">
         <div className="flex flex-col gap-2 p-3">
           {current && (
