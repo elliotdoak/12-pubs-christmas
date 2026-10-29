@@ -104,9 +104,6 @@ export default function Lobby() {
         <button type="button" className="btn-text" onClick={switchPlayer}>
           NOT {me.name.toUpperCase()}? SWITCH PLAYER
         </button>
-        <Link to="/gm" className="btn-text">
-          {isGm ? 'GAME MASTER CONTROL ROOM ▸' : 'GAME MASTER LOGIN'}
-        </Link>
       </div>
 
       <TabBar />

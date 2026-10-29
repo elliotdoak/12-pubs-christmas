@@ -95,7 +95,7 @@ function Box({ label, tone, strong, children }: { label: string; tone: 'pine' | 
   return strong ? (
     <div className="border-4 border-ink bg-white p-3 shadow-[inset_0_0_0_3px_var(--color-pine),4px_4px_0_var(--color-ink)]">
       <div className={`mb-2 font-pix text-[11px] ${c}`}>{label}</div>
-      <div className="text-[20px] font-bold leading-[26px] text-ink">{children}</div>
+      <div className="text-[18px] font-bold leading-[26px] text-ink">{children}</div>
     </div>
   ) : (
     <div className="border-[3px] border-ink bg-white p-3">
