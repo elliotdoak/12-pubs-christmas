@@ -94,10 +94,12 @@ function CostumeSheet({ player, mine, onClose }: { player: Player; mine: boolean
       </div>
 
       {big && c.photo && (
-        <button type="button" onClick={() => setBig(false)} aria-label="Back to the costume" className="mx-4 mb-3 block w-[calc(100%-32px)] border-[3px] border-ink bg-ink p-0">
-          <img src={c.photo} alt={`The original ${c.name} costume`} className="block max-h-[70dvh] w-full object-contain" />
-          <span className="block bg-yolk py-1 text-center font-pix text-[8px] text-ink">TAP TO CLOSE</span>
-        </button>
+        <div className="mx-4 mb-3 flex justify-center">
+          <button type="button" onClick={() => setBig(false)} aria-label="Back to the costume" className="block max-w-full border-[3px] border-ink p-0">
+            <img src={c.photo} alt={`The original ${c.name} costume`} className="block max-h-[70dvh] max-w-full" />
+            <span className="block bg-yolk py-1 text-center font-pix text-[8px] text-ink">TAP TO CLOSE</span>
+          </button>
+        </div>
       )}
 
       <div className="mx-4 grid grid-cols-2 gap-3">
@@ -105,9 +107,9 @@ function CostumeSheet({ player, mine, onClose }: { player: Player; mine: boolean
           <img src={sprite.costume(player.costume)} alt="" width={112} height={112} className="pixel anim-bob" />
         </div>
         {c.photo ? (
-          // Whole photo shown (no cropping) so you can see the full outfit; tap to see it bigger
-          <button type="button" onClick={() => setBig(true)} aria-label="Show the original photo bigger" className="relative block aspect-[3/4] border-[3px] border-ink bg-ink p-0">
-            <img src={c.photo} alt={`The original ${c.name} costume${c.year ? ` from ${c.year}` : ''}`} className="h-full w-full object-contain" />
+          // Photo fills the tile (trimmed to fit, anchored at the top); tap to see the whole thing
+          <button type="button" onClick={() => setBig(true)} aria-label="Show the original photo bigger" className="relative block aspect-[3/4] overflow-hidden border-[3px] border-ink p-0">
+            <img src={c.photo} alt={`The original ${c.name} costume${c.year ? ` from ${c.year}` : ''}`} className="h-full w-full object-cover object-top" />
             <span className="absolute bottom-1 right-1 bg-yolk px-1 font-pix text-[7px] text-ink">ZOOM</span>
           </button>
         ) : (
