@@ -505,10 +505,22 @@ function PlayersTab({ flash }: { flash: (m: string) => void }) {
   // Suggest the next pub for a bulk check-in: one past the furthest selected player
   const suggested = Math.min(12, Math.max(1, ...[...sel].map((id) => game.lastPub[id] + 1)))
   const target = bulkPub ?? suggested
+  const allSel = sel.size === PLAYERS.length
 
   return (
     <>
       <Panel title="PLAYERS" hint="Tick players to check in a group">
+        <label className="flex cursor-pointer items-center gap-3 border-b-4 border-ink bg-white px-3 py-[10px]">
+          <input
+            type="checkbox"
+            checked={allSel}
+            ref={(el) => { if (el) el.indeterminate = sel.size > 0 && !allSel }}
+            onChange={() => setSel(allSel ? new Set() : new Set(PLAYERS.map((p) => p.id)))}
+            className="h-5 w-5 shrink-0 accent-[var(--color-pine)]"
+          />
+          <span className="font-pix text-[10px]">SELECT ALL</span>
+          <span className="ml-auto text-[13px] text-muted">{sel.size}/{PLAYERS.length} ticked</span>
+        </label>
         <ul className="m-0 list-none p-0">
           {PLAYERS.map((p) => {
             const n = game.lastPub[p.id]
