@@ -8,7 +8,7 @@ import { useScale } from '../hooks/useScale'
 import { useGameCtx } from '../lib/game'
 import { useSession } from '../lib/session'
 import { fmtDistance } from '../lib/geo'
-import { JAIL, PLAYERS, PUBS, isGameDay, niceTime, sprite, type PlayerId } from '../data/crawl'
+import { JAIL, PLAYERS, PUBS, clockTime, gateTime, isGameDay, niceTime, sprite, type PlayerId } from '../data/crawl'
 
 const MAP_W = 390
 const MAP_H = 624
@@ -139,7 +139,7 @@ function Hud({ k, v }: { k: string; v: string }) {
 
 function GeoChip({ status, active, practice, nearest, reason }: {
   status: string; active: boolean; practice: boolean
-  nearest: { pub: { name: string }; m: number } | null; reason?: string
+  nearest: { pub: { name: string; n: number }; m: number } | null; reason?: string
 }) {
   let dot = 'bg-muted'
   let text: string
@@ -156,7 +156,7 @@ function GeoChip({ status, active, practice, nearest, reason }: {
   } else {
     dot = 'bg-[#3BD16F] anim-blink'
     text =
-      reason === 'too_early' ? `At ${nearest.pub.name}? Check-in opens nearer the time.`
+      reason === 'too_early' ? `At ${nearest.pub.name}? Check-in opens at ${clockTime(gateTime(nearest.pub.n))}.`
       : reason === 'poor_signal' ? `Weak GPS. ${nearest.pub.name} is about ${fmtDistance(nearest.m)} away.`
       : `${nearest.pub.name} is ${fmtDistance(nearest.m)} away`
   }

@@ -34,7 +34,7 @@ const UNUSABLE_ACCURACY = 150 // worse than this, ignore the fix
  *  - only pubs you haven't checked in to yet, and only ahead of your last pub (skipping ahead is fine)
  *  - it must be the nearest such pub, and within its radius (with some GPS wobble forgiven)
  *  - on game day, not before the pub's gate time (stops next-door pubs firing early)
- *  - before game day it's practice: no time gate
+ *  - in practice mode the timetable runs on today's date, so the same gates apply
  */
 export function decide(fix: Fix, visited: Set<number>, now = Date.now()): CheckinDecision {
   const last = Math.max(0, ...visited)

@@ -1,3 +1,4 @@
+import { load } from '../lib/storage'
 // Static crawl data. The live game state (check-ins, results, photos) lives in Supabase.
 // Times are local Glasgow time on Saturday 28 November 2026 (GMT, so UTC+0).
 
@@ -135,10 +136,29 @@ export const sprite = {
 export const JAIL = { left: 143, top: 534, width: 104 }
 
 const DAY = '2026-11-28'
-/** Glasgow is on GMT in late November, so local time = UTC. */
-export const at = (hhmm: string) => new Date(`${DAY}T${hhmm}:00Z`).getTime()
 
-export const isGameDay = (now = Date.now()) => new Date(now).toISOString().slice(0, 10) === DAY
+/* ---- Practice mode: on this phone, today plays as game day (the real date stays 28 Nov) ---- */
+let practice = load('practice', false)
+export const setPracticeMode = (on: boolean) => {
+  practice = on
+}
+export const isPractice = () => practice
+/** Today's date in Glasgow, as YYYY-MM-DD */
+const today = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/London' }).format(new Date())
+/** The date the game runs on: 28 November, or today in practice mode. */
+export const eventDay = () => (practice ? today() : DAY)
+/** Glasgow is on GMT in late November, so local time = UTC. */
+export const at = (hhmm: string) => new Date(`${eventDay()}T${hhmm}:00Z`).getTime()
+
+export const isGameDay = (now = Date.now()) =>
+  new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/London' }).format(new Date(now)) === eventDay()
+
+/** Kick-off (first pub's arrival) as a timestamp. Moves to today in practice mode. */
+export const startsAt = () => at(PUBS[0].arrive)
+
+/** "3.05pm" for a timestamp, Glasgow time */
+export const clockTime = (t: number) =>
+  new Date(t).toLocaleTimeString('en-GB', { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'Europe/London' }).replace(' ', '').replace(':', '.')
 
 /**
  * Earliest moment you can auto check in to pub n: 10 minutes before the previous pub's leave time.

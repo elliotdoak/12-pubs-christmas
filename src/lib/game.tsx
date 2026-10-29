@@ -4,14 +4,14 @@ import { useSession } from './session'
 import { useGame, type GameState } from '../hooks/useGame'
 import { decide, type CheckinDecision, type Fix } from './geo'
 import { load, save } from './storage'
-import { isGameDay, type Pub, type PlayerId } from '../data/crawl'
+import { isGameDay, setPracticeMode, type Pub, type PlayerId } from '../data/crawl'
 
 export type GeoStatus = 'off' | 'waiting' | 'tracking' | 'denied' | 'unsupported'
 
 interface GameCtx {
   game: GameState
   geo: { status: GeoStatus; fix: Fix | null; decision: CheckinDecision | null }
-  /** Auto check-in runs on game day, or on this phone when practice mode is on. */
+  /** Auto check-in runs on game day. Practice mode makes today game day on this phone. */
   active: boolean
   practice: boolean
   setPractice: (on: boolean) => void
@@ -38,10 +38,11 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const resetSeen = useRef<string | null | undefined>(undefined)
   const lastFix = useRef<Fix | null>(null)
 
-  const active = !!playerId && (isGameDay() || practice)
+  const active = !!playerId && isGameDay()
 
   const setPractice = (on: boolean) => {
     save('practice', on)
+    setPracticeMode(on)
     setPracticeState(on)
   }
 

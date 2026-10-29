@@ -1,8 +1,8 @@
-import { EVENT } from '../data/crawl'
+import { isPractice, startsAt } from '../data/crawl'
 import { useCountdown } from '../hooks/useCountdown'
 
 export function Countdown() {
-  const t = useCountdown(EVENT.startsAt)
+  const t = useCountdown(new Date(startsAt()).toISOString())
   const units: [string, number][] = [
     ['DAYS', t.days],
     ['HRS', t.hours],
@@ -11,6 +11,7 @@ export function Countdown() {
   ]
   return (
     <div className="flex flex-col items-center gap-3">
+      {isPractice() && <div className="tag bg-yolk text-ink">PRACTICE · TODAY IS GAME DAY</div>}
       <div className="font-pix text-[10px] text-white">{t.done ? "IT'S GAME DAY" : 'GAME STARTS IN'}</div>
       <div
         className="grid w-full grid-cols-4 gap-2"

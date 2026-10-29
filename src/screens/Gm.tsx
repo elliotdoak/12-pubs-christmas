@@ -614,7 +614,7 @@ function TestingTab({ flash, onExit }: { flash: (m: string) => void; onExit: () 
       <Panel title="PRACTICE MODE">
         <label className="flex items-start gap-3 p-3 text-[16px] leading-[20px]">
           <input type="checkbox" checked={practice} onChange={(e) => setPractice(e.target.checked)} className="mt-[2px] h-5 w-5 shrink-0 accent-[var(--color-pine)]" />
-          Auto check-in on this phone before game day, with no time limits. Turn it off when you're done.
+          Today plays as game day on this phone: auto check-in on, scores unlocked, and the timetable runs on today's clock, so each pub opens for check-in at its real time. The real date stays 28 November. Turn it off when you're done.
         </label>
       </Panel>
 
