@@ -10,7 +10,7 @@ export interface CheckinRow {
   by_player: PlayerId | null
 }
 export interface ResultRow { player_id: PlayerId; pub_n: number; outcome: 'pass' | 'fail'; set_at: string }
-export interface Settings { announcement: string | null; announced_at: string | null }
+export interface Settings { announcement: string | null; announced_at: string | null; reset_at?: string | null }
 export interface BonusRow { id: number; player_id: PlayerId; points: number; reason: string; created_at: string }
 export interface PhotoRow { id: string; player_id: PlayerId; pub_n: number | null; path: string; caption: string | null; tagged: PlayerId[]; created_at: string }
 export interface JailRow { player_id: PlayerId; last_pub: number | null; since: string; released_at: string | null }
@@ -47,7 +47,7 @@ export function useGame(enabled = true): GameState {
       supabase.from('checkins').select('player_id,pub_n,at,source,by_player'),
       supabase.from('results').select('player_id,pub_n,outcome,set_at'),
       supabase.from('jail').select('player_id,last_pub,since,released_at'),
-      supabase.from('settings').select('announcement,announced_at').eq('id', 1).maybeSingle(),
+      supabase.from('settings').select('*').eq('id', 1).maybeSingle(),
       supabase.from('bonuses').select('id,player_id,points,reason,created_at').order('created_at'),
       supabase.from('photos').select('id,player_id,pub_n,path,caption,tagged,created_at').order('created_at', { ascending: false }),
     ])

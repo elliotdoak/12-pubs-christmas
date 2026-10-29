@@ -25,7 +25,7 @@ const Ctx = createContext<GameCtx | null>(null)
 const LOCATION_EVERY_MS = 30_000
 
 export function GameProvider({ children }: { children: ReactNode }) {
-  const { playerId, session } = useSession()
+  const { playerId, session, refresh } = useSession()
   const game = useGame(!!session)
   const [practice, setPracticeState] = useState(() => load('practice', false))
   const [status, setStatus] = useState<GeoStatus>('off')
@@ -35,6 +35,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const lastSent = useRef(0)
   const inFlight = useRef(new Set<number>())
   const checkedHere = useRef(new Set<number>())
+  const resetSeen = useRef<string | null | undefined>(undefined)
   const lastFix = useRef<Fix | null>(null)
 
   const active = !!playerId && (isGameDay() || practice)
@@ -50,6 +51,15 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const loadedRef = useRef(false)
   useEffect(() => {
     loadedRef.current = game.loaded
+    // The GM did a full reset: forget this phone's own check-ins so it starts from scratch
+    const r = game.settings.reset_at ?? null
+    if (game.loaded) {
+      if (resetSeen.current !== undefined && r !== resetSeen.current) {
+        checkedHere.current.clear()
+        refresh() // pick up a wiped player claim straight away if PINs were reset too
+      }
+      resetSeen.current = r
+    }
     const server = playerId ? game.visited[playerId] ?? new Set<number>() : new Set<number>()
     // checkedHere only lives until the app is closed, so a GM undo or wipe sticks after a reopen
     visitedRef.current = new Set([...server, ...checkedHere.current])

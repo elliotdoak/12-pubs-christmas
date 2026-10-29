@@ -8,6 +8,7 @@ import { CLAIM_MESSAGES, claimGm, gmResetPin, releaseGm } from '../lib/api'
 import { useGameCtx } from '../lib/game'
 import { useSession } from '../lib/session'
 import { supabase } from '../lib/supabase'
+import { thumbPath } from '../lib/photos'
 import { PLAYERS, PUBS, SCORING, pubByN, type PlayerId } from '../data/crawl'
 
 export default function Gm() {
@@ -580,19 +581,33 @@ function PlayersTab({ flash }: { flash: (m: string) => void }) {
 
 function TestingTab({ flash, onExit }: { flash: (m: string) => void; onExit: () => void }) {
   const { game, practice, setPractice } = useGameCtx()
-  const [confirm, setConfirm] = useState<'checkins' | 'results' | 'jail' | null>(null)
+  const [open, setOpen] = useState(false)
+  const [pins, setPins] = useState(false)
+  const [typed, setTyped] = useState('')
+  const [busy, setBusy] = useState(false)
 
-  const wipe = async (what: 'checkins' | 'results' | 'jail') => {
+  const counts = [
+    ['check-ins', game.checkins.length],
+    ['results', game.results.length],
+    ['Sleepy Jail records', game.jail.length],
+    ['bonus points', game.bonuses.length],
+    ['photos', game.photos.length],
+  ] as const
+
+  const reset = async () => {
     if (!supabase) return
-    const q = what === 'jail' ? supabase.from('jail').delete().neq('player_id', '') : supabase.from(what).delete().gte('pub_n', 1)
-    const { error } = await q
-    if (!error) log(`Wiped all ${what === 'jail' ? 'Sleepy Jail records' : what}`)
-    setConfirm(null)
+    setBusy(true)
+    // Photo files first: Supabase won't let SQL delete storage files
+    const files = game.photos.flatMap((p) => [p.path, thumbPath(p.path)])
+    for (let i = 0; i < files.length; i += 100) await supabase.storage.from('photos').remove(files.slice(i, i + 100))
+    const { data, error } = await supabase.rpc('gm_full_reset', { p_reset_pins: pins })
+    setBusy(false)
+    if (error || !(data as { ok?: boolean })?.ok) return flash('RESET FAILED')
+    setOpen(false)
+    setTyped('')
     await game.reload()
-    flash(error ? 'WIPE FAILED' : 'WIPED')
+    flash(pins ? 'RESET · EVERYONE RE-JOINS' : 'GAME RESET')
   }
-
-  const labels = { checkins: 'CHECK-INS', results: 'RESULTS', jail: 'SLEEPY JAIL' }
 
   return (
     <>
@@ -603,18 +618,37 @@ function TestingTab({ flash, onExit }: { flash: (m: string) => void; onExit: () 
         </label>
       </Panel>
 
-      <Panel title="WIPE TEST DATA" hint="Can't be undone">
-        <div className="flex flex-col gap-2 p-3">
-          {(['checkins', 'results', 'jail'] as const).map((w) =>
-            confirm === w ? (
-              <div key={w} className="flex items-center gap-2">
-                <span className="flex-1 text-[15px]">Delete all {labels[w].toLowerCase()} for everyone?</span>
-                <Btn tone="red" onClick={() => wipe(w)}>WIPE</Btn>
-                <Btn onClick={() => setConfirm(null)}>NO</Btn>
+      <Panel title="FULL RESET" hint="Can't be undone">
+        <div className="flex flex-col gap-3 p-3">
+          <p className="m-0 text-[15px] leading-[19px]">
+            Puts the game back to unstarted: everyone off the map, scores to zero, photos and Sleepy Jail cleared.
+          </p>
+          <ul className="m-0 list-none p-0 text-[14px] leading-[19px] text-muted">
+            {counts.map(([label, n]) => <li key={label}>{n} {label}</li>)}
+          </ul>
+          {!open ? (
+            <Btn tone="red" onClick={() => setOpen(true)}>RESET THE GAME…</Btn>
+          ) : (
+            <div className="flex flex-col gap-3 border-[3px] border-red bg-white p-3">
+              <label className="flex items-start gap-3 text-[15px] leading-[19px]">
+                <input type="checkbox" checked={pins} onChange={(e) => setPins(e.target.checked)} className="mt-[2px] h-5 w-5 shrink-0 accent-[var(--color-red)]" />
+                Also wipe everyone's PIN. Every phone goes back to "Who are you?" and has to re-join.
+              </label>
+              <label className="flex flex-col gap-1">
+                <span className="text-[14px]">Type <b>RESET</b> to confirm</span>
+                <input
+                  value={typed}
+                  onChange={(e) => setTyped(e.target.value)}
+                  autoCapitalize="characters"
+                  autoComplete="off"
+                  className="border-2 border-ink bg-white p-2 font-pix text-[12px] uppercase"
+                />
+              </label>
+              <div className="flex gap-2">
+                <Btn tone="red" disabled={busy || typed.trim().toUpperCase() !== 'RESET'} onClick={reset}>{busy ? 'RESETTING…' : 'RESET EVERYTHING'}</Btn>
+                <Btn onClick={() => { setOpen(false); setTyped('') }}>CANCEL</Btn>
               </div>
-            ) : (
-              <Btn key={w} onClick={() => setConfirm(w)}>WIPE ALL {labels[w]}</Btn>
-            ),
+            </div>
           )}
         </div>
       </Panel>
