@@ -11,7 +11,7 @@ import { COSTUMES, PLAYERS, sprite, type CostumeKey } from '../data/crawl'
 
 export default function Lobby() {
   const nav = useNavigate()
-  const { playerId, isGm, refresh } = useSession()
+  const { playerId, refresh } = useSession()
   const { players } = usePlayers(20_000)
   const [loc, setLoc] = useState<PermState>('prompt')
   const [showCostume, setShowCostume] = useState(false)
