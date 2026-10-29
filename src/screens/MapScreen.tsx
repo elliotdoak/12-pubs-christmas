@@ -4,6 +4,7 @@ import { Avatar, Screen } from '../components/ui'
 import { TabBar } from '../components/TabBar'
 import { PubSheet } from '../components/PubSheet'
 import { CrewSheet } from '../components/CrewSheet'
+import { JailSheet } from '../components/JailSheet'
 import { useScale } from '../hooks/useScale'
 import { useGameCtx } from '../lib/game'
 import { useSession } from '../lib/session'
@@ -20,6 +21,7 @@ export default function MapScreen() {
   const { game, geo, active, practice, justCheckedIn } = useGameCtx()
   const { ref, scale } = useScale<HTMLDivElement>(MAP_W)
   const [open, setOpen] = useState<number | null>(null)
+  const [jailOpen, setJailOpen] = useState(false)
   const now = useClock()
 
   const myLast = playerId ? game.lastPub[playerId] : 0
@@ -98,17 +100,23 @@ export default function MapScreen() {
             )
           })}
 
-          <div className="absolute" style={{ left: JAIL.left, top: JAIL.top, width: JAIL.width }}>
+          <button
+            type="button"
+            onClick={() => setJailOpen(true)}
+            aria-label={`Sleepy Jail: ${jailed.length} inside. See who and when.`}
+            className="absolute p-0 text-left"
+            style={{ left: JAIL.left, top: JAIL.top, width: JAIL.width }}
+          >
             <img src="/sprites/map/jail.svg" alt="" width={JAIL.width} height={60} className="pixel" />
             <span className="absolute -top-[14px] left-1/2 -translate-x-1/2 whitespace-nowrap bg-ink px-1 font-pix text-[7px] text-yolk">SLEEPY JAIL</span>
-            <div className="absolute left-[14px] right-[14px] top-[26px] flex flex-wrap justify-center gap-[2px]" aria-label={`${jailed.length} in Sleepy Jail`}>
+            <div className="absolute left-[14px] right-[14px] top-[26px] flex flex-wrap justify-center gap-[2px]">
               {jailed.map((id) => (
                 <div key={id} className="bg-white/80 opacity-90 grayscale-[40%]">
                   <Avatar id={id} size={16} />
                 </div>
               ))}
             </div>
-          </div>
+          </button>
         </div>
       </div>
 
@@ -124,6 +132,7 @@ export default function MapScreen() {
       <TabBar />
 
       {open !== null && <PubSheet n={open} onClose={() => setOpen(null)} />}
+      {jailOpen && <JailSheet onClose={() => setJailOpen(false)} />}
       {justCheckedIn && <CrewSheet pub={justCheckedIn} />}
     </Screen>
   )
