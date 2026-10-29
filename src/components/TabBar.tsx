@@ -1,4 +1,4 @@
-import { NavLink } from 'react-router-dom'
+import { NavLink, useLocation } from 'react-router-dom'
 import { DRUNK_LEVELS, useDrunk } from '../lib/drunk'
 
 const ICONS = {
@@ -50,25 +50,27 @@ export function TabBar() {
   )
 }
 
-/** Drunk Eyes toggle: tap to go OFF > TIPSY > STEAMING > BLOOTERED and back. */
+/** Screens that open with the knitted band; the pint sits just below it there. */
+const KNIT_TOP = ['/lobby', '/scores', '/photos', '/costumes']
+
+/** Drunk Eyes toggle: tap to go OFF > TIPSY > STEAMING > BLOOTERED and back. Hidden on the GM screen. */
 function DrunkButton() {
   const { level, cycle } = useDrunk()
+  const { pathname } = useLocation()
+  if (pathname === '/gm') return null
+  const below = KNIT_TOP.includes(pathname) ? 40 : 6
   return (
     <button
       type="button"
       onClick={cycle}
       aria-pressed={level > 0}
       aria-label={`Drunk Eyes: ${DRUNK_LEVELS[level].toLowerCase()}. Tap to change.`}
-      className={`fixed z-20 flex h-[52px] w-[48px] flex-col items-center justify-center gap-[5px] border-[3px] border-ink shadow-[3px_3px_0_var(--color-ink)] ${
-        level ? 'bg-yolk text-ink' : 'bg-wool text-ink'
-      }`}
-      style={{ top: 'calc(env(safe-area-inset-top) + 10px)', right: 'max(12px, calc((100vw - 430px) / 2 + 12px))' }}
+      className="fixed z-20 flex w-[48px] flex-col items-center gap-[2px] bg-transparent p-0"
+      style={{ top: `calc(env(safe-area-inset-top) + ${below}px)`, right: 'max(8px, calc((100vw - 430px) / 2 + 8px))' }}
     >
-      <svg width="24" height="20" viewBox="0 0 12 10" shapeRendering="crispEdges" aria-hidden="true" className={level ? 'anim-bob' : ''}>
-        <path d={ICONS.pint} fill="currentColor" />
-      </svg>
+      <img src="/sprites/map/lager.svg" alt="" width={48} height={48} className={`pixel ${level ? 'anim-bob' : ''}`} />
       <span className="flex gap-[3px]" aria-hidden="true">
-        {[1, 2, 3].map((l) => <i key={l} className={`block h-[5px] w-[5px] ${l <= level ? 'bg-red' : 'bg-ink/25'}`} />)}
+        {[1, 2, 3].map((l) => <i key={l} className={`block h-[5px] w-[5px] border border-ink ${l <= level ? 'bg-yolk' : 'bg-wool/40'}`} />)}
       </span>
     </button>
   )
