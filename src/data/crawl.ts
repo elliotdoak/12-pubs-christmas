@@ -27,16 +27,16 @@ export interface Costume {
 }
 
 export const COSTUMES: Record<CostumeKey, Costume> = {
-  ecto: { key: 'ecto', name: 'Ecto Frecto', year: 2016, confirmed: true },
-  tree: { key: 'tree', name: 'Christmas Tree', year: 2017, confirmed: true },
-  stocking: { key: 'stocking', name: 'Christmas Stocking', year: 2018, confirmed: true },
-  schememaw: { key: 'schememaw', name: 'Scheme Maw', year: 2019, confirmed: true },
-  snowman: { key: 'snowman', name: 'Walking in the Air', year: 2021, confirmed: true, note: 'Duo with Gregor' },
-  boy: { key: 'boy', name: 'Walking in the Air', year: 2021, confirmed: true, note: 'Duo with Hammy' },
-  goth: { key: 'goth', name: '21 Jump Street Goth', year: 2022, confirmed: true },
+  ecto: { key: 'ecto', name: 'Ecto Frecto', year: 2016, confirmed: true, photo: '/costumes/ecto.jpg' },
+  tree: { key: 'tree', name: 'Christmas Tree', year: 2017, confirmed: true, photo: '/costumes/tree.jpg' },
+  stocking: { key: 'stocking', name: 'Christmas Stocking', year: 2018, confirmed: true, photo: '/costumes/stocking.jpg' },
+  schememaw: { key: 'schememaw', name: 'Scheme Maw', year: 2019, confirmed: true, photo: '/costumes/schememaw.jpg' },
+  snowman: { key: 'snowman', name: 'Walking in the Air', year: 2021, confirmed: true, note: 'Duo with Gregor', photo: '/costumes/walking-in-the-air.jpg' },
+  boy: { key: 'boy', name: 'Walking in the Air', year: 2021, confirmed: true, note: 'Duo with Hammy', photo: '/costumes/walking-in-the-air.jpg' },
+  goth: { key: 'goth', name: '21 Jump Street Goth', year: 2022, confirmed: true, photo: '/costumes/goth.jpg' },
   mistletoe: { key: 'mistletoe', name: 'Mistletoe and Wine', year: 2023, confirmed: false }, // [TK] confirm Grant
-  chocorange: { key: 'chocorange', name: "Terry's Chocolate Orange", year: 2024, confirmed: true },
-  pilot: { key: 'pilot', name: 'Flight Club', year: 2025, confirmed: true },
+  chocorange: { key: 'chocorange', name: "Terry's Chocolate Orange", year: 2024, confirmed: true, photo: '/costumes/chocorange.jpg' },
+  pilot: { key: 'pilot', name: 'Flight Club', year: 2025, confirmed: true, photo: '/costumes/pilot.jpg' },
 }
 
 export type PlayerId = 'KY' | 'RE' | 'ST' | 'DE' | 'HA' | 'GR' | 'EL' | 'GT' | 'CA' | 'HI'

@@ -81,6 +81,7 @@ function CostumeSheet({ player, mine, onClose }: { player: Player; mine: boolean
   const c = COSTUMES[player.costume]
   // Duo costumes: show the partner (anyone else wearing the same costume name)
   const partner = PLAYERS.find((p) => p.id !== player.id && COSTUMES[p.costume].name === c.name)
+  const [big, setBig] = useState(false)
 
   return (
     <Sheet label={`${c.name} costume`} onClose={onClose}>
@@ -92,14 +93,25 @@ function CostumeSheet({ player, mine, onClose }: { player: Player; mine: boolean
         <SheetClose onClose={onClose} />
       </div>
 
+      {big && c.photo && (
+        <button type="button" onClick={() => setBig(false)} aria-label="Back to the costume" className="mx-4 mb-3 block w-[calc(100%-32px)] border-[3px] border-ink bg-ink p-0">
+          <img src={c.photo} alt={`The original ${c.name} costume`} className="block max-h-[70dvh] w-full object-contain" />
+          <span className="block bg-yolk py-1 text-center font-pix text-[8px] text-ink">TAP TO CLOSE</span>
+        </button>
+      )}
+
       <div className="mx-4 grid grid-cols-2 gap-3">
-        <div className="flex aspect-square items-center justify-center border-[3px] border-ink bg-sky">
+        <div className="flex aspect-[3/4] items-center justify-center border-[3px] border-ink bg-sky">
           <img src={sprite.costume(player.costume)} alt="" width={112} height={112} className="pixel anim-bob" />
         </div>
         {c.photo ? (
-          <img src={c.photo} alt={`The original ${c.name} costume${c.year ? ` from ${c.year}` : ''}`} className="aspect-square w-full border-[3px] border-ink object-cover" />
+          // Whole photo shown (no cropping) so you can see the full outfit; tap to see it bigger
+          <button type="button" onClick={() => setBig(true)} aria-label="Show the original photo bigger" className="relative block aspect-[3/4] border-[3px] border-ink bg-ink p-0">
+            <img src={c.photo} alt={`The original ${c.name} costume${c.year ? ` from ${c.year}` : ''}`} className="h-full w-full object-contain" />
+            <span className="absolute bottom-1 right-1 bg-yolk px-1 font-pix text-[7px] text-ink">ZOOM</span>
+          </button>
         ) : (
-          <div className="flex aspect-square flex-col items-center justify-center gap-2 border-[3px] border-dashed border-ink bg-white p-3 text-center">
+          <div className="flex aspect-[3/4] flex-col items-center justify-center gap-2 border-[3px] border-dashed border-ink bg-white p-3 text-center">
             <span className="font-pix text-[8px] leading-[12px] text-muted">ORIGINAL PHOTO</span>
             <span className="text-[14px] leading-[18px] text-muted">Coming soon</span>
           </div>
