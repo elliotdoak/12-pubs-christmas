@@ -12,29 +12,45 @@ const ICONS = {
   pint: 'M2 0h7v2h-7zM2 2h1v7h-1zM8 2h1v7h-1zM3 4h5v5h-5zM9 3h2v1h-2zM10 4h1v3h-1zM9 7h2v1h-2zM2 9h7v1h-7z',
 }
 
-/** Bottom tab bar, plus the Drunk Eyes pint that floats in the top right. */
-export function TabBar() {
-  const tabs: [string, string, keyof typeof ICONS][] = [
-    ['/lobby', 'CREW', 'players'],
-    ['/map', 'MAP', 'map'],
-    ['/scores', 'SCORES', 'scores'],
-    ['/photos', 'PHOTOS', 'photos'],
-    ['/costumes', 'FAME', 'fame'],
-    ['/gm', 'GM', 'gm'],
-  ]
+const TABS: [string, string, keyof typeof ICONS][] = [
+  ['/lobby', 'CREW', 'players'],
+  ['/map', 'MAP', 'map'],
+  ['/scores', 'SCORES', 'scores'],
+  ['/photos', 'PHOTOS', 'photos'],
+  ['/costumes', 'FAME', 'fame'],
+  ['/gm', 'GM', 'gm'],
+]
 
+/**
+ * Bottom tab bar, plus the Drunk Eyes pint that floats in the top right.
+ * The real bar is position:fixed and edge to edge: iOS Safari drags sticky bars around while its
+ * toolbar collapses and the page rubber-bands. An invisible copy stays in the flow to hold its space.
+ */
+export function TabBar() {
   return (
     <>
       <DrunkButton />
-      <nav
-        className="sticky bottom-0 z-20 mt-auto flex gap-1 bg-ink px-2 pt-[10px]"
-        style={{ paddingBottom: 'max(14px, env(safe-area-inset-bottom))' }}
-        aria-label="Main"
-      >
-        {tabs.map(([to, label, icon]) => (
+      <Bar className="invisible mt-auto" placeholder />
+      <Bar className="fixed inset-x-0 bottom-0 z-20" />
+    </>
+  )
+}
+
+function Bar({ className, placeholder = false }: { className: string; placeholder?: boolean }) {
+  return (
+    <nav
+      className={`bg-ink px-2 pt-[10px] ${className}`}
+      style={{ paddingBottom: 'max(14px, env(safe-area-inset-bottom))' }}
+      aria-label={placeholder ? undefined : 'Main'}
+      aria-hidden={placeholder || undefined}
+      inert={placeholder || undefined}
+    >
+      <div className="mx-auto flex max-w-[430px] gap-1">
+        {TABS.map(([to, label, icon]) => (
           <NavLink
             key={to}
             to={to}
+            tabIndex={placeholder ? -1 : undefined}
             className={({ isActive }) =>
               `flex min-w-0 flex-1 flex-col items-center gap-[6px] py-[10px] font-pix text-[8px] no-underline ${isActive ? 'bg-yolk text-ink' : 'text-wool'}`
             }
@@ -45,8 +61,8 @@ export function TabBar() {
             {label}
           </NavLink>
         ))}
-      </nav>
-    </>
+      </div>
+    </nav>
   )
 }
 

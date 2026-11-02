@@ -111,7 +111,3 @@ img.pixel { image-rendering: pixelated; display: block; }
 /* Leave alarm: background flips red and yellow */
 .anim-alarm { animation: alarm .7s steps(1) infinite; }
 @keyframes alarm { 50% { background: var(--color-yolk); color: var(--color-ink); } }
-
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { animation: none !important; transition: none !important; }
-}
