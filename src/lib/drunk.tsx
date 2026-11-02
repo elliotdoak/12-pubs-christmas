@@ -55,11 +55,10 @@ export function DrunkProvider({ children }: { children: ReactNode }) {
 
   return (
     <Ctx.Provider value={{ level, cycle }}>
-      <DrunkFilters />
       {/* Outer box takes the filter (and so anchors fixed children to the screen); inner box scrolls */}
       <div className={level ? `drunk d${level} fixed inset-0 overflow-hidden` : ''}>
         <div className={level ? 'h-full overflow-y-auto overscroll-none' : ''}>{children}</div>
-        {/* Sheets portal here: above every screen's stacking contexts, but still inside the drunk filter */}
+        {/* Sheets and the tab bar portal here: outside the scroller, but still inside the drunk filter */}
         <div id="overlay-root" />
       </div>
       {level === 3 && <div className="drunk-vignette" aria-hidden="true" />}
@@ -76,28 +75,4 @@ export function useDrunk() {
   const v = useContext(Ctx)
   if (!v) throw new Error('useDrunk must be used inside DrunkProvider')
   return v
-}
-
-/** Double-vision filter for BLOOTERED: a blurred copy drifting beside the original. */
-function DrunkFilters() {
-  return (
-    <svg width="0" height="0" style={{ position: 'absolute' }} aria-hidden="true" focusable="false">
-      <defs>
-        <filter id="double-vision" x="-8%" y="-8%" width="116%" height="116%" colorInterpolationFilters="sRGB">
-          <feGaussianBlur in="SourceGraphic" stdDeviation="0.9" result="b" />
-          <feOffset in="b" dx="7" dy="1" result="o">
-            <animate attributeName="dx" values="8;16;4;18;8" dur="3.6s" repeatCount="indefinite" />
-            <animate attributeName="dy" values="1;-3;2;-1;1" dur="5.2s" repeatCount="indefinite" />
-          </feOffset>
-          <feComponentTransfer in="o" result="oa">
-            <feFuncA type="linear" slope="0.55" />
-          </feComponentTransfer>
-          <feMerge>
-            <feMergeNode in="b" />
-            <feMergeNode in="oa" />
-          </feMerge>
-        </filter>
-      </defs>
-    </svg>
-  )
 }

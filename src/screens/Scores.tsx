@@ -4,6 +4,7 @@ import { TabBar } from '../components/TabBar'
 import { Countdown } from '../components/Countdown'
 import { useGameCtx } from '../lib/game'
 import { useSession } from '../lib/session'
+import { useIntro } from '../hooks/useIntro'
 import { computeScores, ordinal } from '../lib/scoring'
 import { PLAYERS, SCORING, isGameDay } from '../data/crawl'
 
@@ -13,6 +14,7 @@ export default function Scores() {
   const { playerId } = useSession()
   const { game } = useGameCtx()
   const [open, setOpen] = useState<string | null>(null)
+  const intro = useIntro()
 
   const scores = computeScores(game)
   const started = game.checkins.length > 0
@@ -52,7 +54,7 @@ export default function Scores() {
             if (s.firstIn) bits.push(`first in ×${s.firstIn}`)
             if (s.jailed) bits.push('in jail')
             return (
-              <li key={s.id} className="anim-pop" style={{ animationDelay: `${i * 0.05}s` }}>
+              <li key={s.id} className={intro ? 'anim-pop' : undefined} style={{ animationDelay: `${i * 0.05}s` }}>
                 <button
                   type="button"
                   onClick={() => setOpen(expanded ? null : s.id)}

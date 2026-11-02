@@ -3,12 +3,14 @@ import { Avatar, Knit, Screen } from '../components/ui'
 import { TabBar } from '../components/TabBar'
 import { Sheet, SheetClose } from '../components/Sheet'
 import { useSession } from '../lib/session'
+import { useIntro } from '../hooks/useIntro'
 import { COSTUMES, PLAYERS, sprite, type Player } from '../data/crawl'
 
 /** Hall of Fame: every costume has been done before. This is the reference for recreating it. */
 export default function Costumes() {
   const { playerId } = useSession()
   const [open, setOpen] = useState<Player | null>(null)
+  const intro = useIntro()
   const me = PLAYERS.find((p) => p.id === playerId)
   // Oldest first, so the grid reads as ten years of crawls
   const byYear = [...PLAYERS].sort((a, b) => (COSTUMES[a.costume].year ?? 9999) - (COSTUMES[b.costume].year ?? 9999))
@@ -35,7 +37,7 @@ export default function Costumes() {
               type="button"
               onClick={() => setOpen(p)}
               aria-label={`${c.name}, worn by ${p.name}${c.year ? `, from ${c.year}` : ''}`}
-              className={`anim-pop relative flex flex-col items-center gap-[6px] border-[3px] px-1 pb-2 pt-3 text-ink ${mine ? 'border-yolk bg-wool shadow-[0_0_0_3px_var(--color-ink)]' : 'border-ink bg-wool'}`}
+              className={`${intro ? 'anim-pop' : ''} relative flex flex-col items-center gap-[6px] border-[3px] px-1 pb-2 pt-3 text-ink ${mine ? 'border-yolk bg-wool shadow-[0_0_0_3px_var(--color-ink)]' : 'border-ink bg-wool'}`}
               style={{ animationDelay: `${i * 0.04}s` }}
             >
               {c.year && <span className="absolute -top-[11px] left-1/2 -translate-x-1/2 border-2 border-ink bg-yolk px-1 font-pix text-[7px] leading-[10px]">{c.year}</span>}

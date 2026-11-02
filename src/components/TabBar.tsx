@@ -1,3 +1,5 @@
+import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { NavLink, useLocation } from 'react-router-dom'
 import { DRUNK_LEVELS, useDrunk } from '../lib/drunk'
 
@@ -25,13 +27,17 @@ const TABS: [string, string, keyof typeof ICONS][] = [
  * Bottom tab bar, plus the Drunk Eyes pint that floats in the top right.
  * The real bar is position:fixed and edge to edge: iOS Safari drags sticky bars around while its
  * toolbar collapses and the page rubber-bands. An invisible copy stays in the flow to hold its space.
+ * The real bar portals out of the scrolling box (like the sheets), or Safari moves it with the
+ * scroll while Drunk Eyes is on.
  */
 export function TabBar() {
+  const [root, setRoot] = useState<HTMLElement | null>(null)
+  useEffect(() => setRoot(document.getElementById('overlay-root') ?? document.body), [])
   return (
     <>
       <DrunkButton />
       <Bar className="invisible mt-auto" placeholder />
-      <Bar className="fixed inset-x-0 bottom-0 z-20" />
+      {root && createPortal(<Bar className="fixed inset-x-0 bottom-0 z-20" />, root)}
     </>
   )
 }
