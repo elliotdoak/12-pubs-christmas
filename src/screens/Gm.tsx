@@ -547,6 +547,10 @@ function PlayersTab({ flash }: { flash: (m: string) => void }) {
       : await supabase.from('jail').upsert({ player_id: id, last_pub: game.lastPub[id] || null, since: new Date().toISOString(), released_at: null }, { onConflict: 'player_id' })
     await game.reload()
     flash(error ? 'COULD NOT UPDATE JAIL' : inJail ? `${name(id).toUpperCase()} RELEASED` : `${name(id).toUpperCase()} JAILED`)
+    if (error || inJail) return
+    // Let them know on their phone, even if it's in their pocket
+    const r = await notify('jail', id)
+    flash(r.ok && r.players ? `${name(id).toUpperCase()} JAILED · PHONE TOLD` : `${name(id).toUpperCase()} JAILED · NO ALERT REACHED THEM`)
   }
 
   const resetPin = async (id: PlayerId) => {

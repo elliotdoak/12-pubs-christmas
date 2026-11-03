@@ -50,10 +50,10 @@ export async function dropPush() {
 
 export interface NotifyResult { ok: boolean; sent?: number; failed?: number; players?: number; error?: string }
 
-/** Game Master: push the alarm or the current announcement to every phone with alerts on. */
-export async function notify(kind: 'alarm' | 'announce'): Promise<NotifyResult> {
+/** Game Master: push the alarm or the current announcement to everyone, or the Sleepy Jail alert to one player. */
+export async function notify(kind: 'alarm' | 'announce' | 'jail', player?: string): Promise<NotifyResult> {
   if (!supabase) return { ok: false, error: 'offline' }
-  const { data, error } = await supabase.functions.invoke('notify', { body: { kind } })
+  const { data, error } = await supabase.functions.invoke('notify', { body: { kind, player } })
   if (error) return { ok: false, error: error.message }
   return data as NotifyResult
 }
