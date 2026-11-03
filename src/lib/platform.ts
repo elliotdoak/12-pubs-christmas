@@ -1,3 +1,5 @@
+import { load, save } from './storage'
+
 export type OS = 'ios' | 'android' | 'other'
 
 export function detectOS(): OS {
@@ -61,12 +63,26 @@ export async function requestNotifications(): Promise<PermState> {
   return r === 'default' ? 'prompt' : r
 }
 
+/**
+ * iPhone home-screen apps often report location as "prompt" after a restart even when it was allowed,
+ * so we remember the last real answer (from a prompt or a GPS fix) and fall back to it.
+ */
+export const rememberLocation = (allowed: boolean) => {
+  if (load('locAllowed', null) !== allowed) save('locAllowed', allowed)
+}
+
 export function requestLocation(): Promise<PermState> {
   return new Promise((resolve) => {
     if (!('geolocation' in navigator)) return resolve('unsupported')
     navigator.geolocation.getCurrentPosition(
-      () => resolve('granted'),
-      (err) => resolve(err.code === err.PERMISSION_DENIED ? 'denied' : 'granted'),
+      () => {
+        rememberLocation(true)
+        resolve('granted')
+      },
+      (err) => {
+        rememberLocation(err.code !== err.PERMISSION_DENIED)
+        resolve(err.code === err.PERMISSION_DENIED ? 'denied' : 'granted')
+      },
       { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 },
     )
   })
@@ -76,8 +92,12 @@ export async function locationState(): Promise<PermState> {
   if (!('geolocation' in navigator)) return 'unsupported'
   try {
     const s = await navigator.permissions.query({ name: 'geolocation' })
-    return s.state
+    if (s.state !== 'prompt') {
+      rememberLocation(s.state === 'granted')
+      return s.state
+    }
   } catch {
-    return 'prompt' // Safari before 16 has no permissions API for geolocation
+    // Safari before 16 has no permissions API for geolocation
   }
+  return load('locAllowed', false) ? 'granted' : 'prompt'
 }

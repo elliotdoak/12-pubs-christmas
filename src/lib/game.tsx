@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
 import { supabase } from './supabase'
+import { rememberLocation } from './platform'
 import { useSession } from './session'
 import { useGame, type GameState } from '../hooks/useGame'
 import { decide, type CheckinDecision, type Fix } from './geo'
@@ -123,8 +124,14 @@ export function GameProvider({ children }: { children: ReactNode }) {
       if (watch !== null) return
       setStatus((s) => (s === 'tracking' ? s : 'waiting'))
       watch = navigator.geolocation.watchPosition(
-        (p) => onFix({ lat: p.coords.latitude, lng: p.coords.longitude, accuracy: p.coords.accuracy, at: p.timestamp }),
-        (err) => setStatus(err.code === err.PERMISSION_DENIED ? 'denied' : 'waiting'),
+        (p) => {
+          rememberLocation(true)
+          onFix({ lat: p.coords.latitude, lng: p.coords.longitude, accuracy: p.coords.accuracy, at: p.timestamp })
+        },
+        (err) => {
+          if (err.code === err.PERMISSION_DENIED) rememberLocation(false)
+          setStatus(err.code === err.PERMISSION_DENIED ? 'denied' : 'waiting')
+        },
         { enableHighAccuracy: true, maximumAge: 15_000, timeout: 30_000 },
       )
     }

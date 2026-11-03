@@ -7,6 +7,7 @@ import { TabBar } from '../components/TabBar'
 import { usePlayers } from '../hooks/usePlayers'
 import { releasePlayer } from '../lib/api'
 import { useSession } from '../lib/session'
+import { useGameCtx } from '../lib/game'
 import { load, save } from '../lib/storage'
 import { dropPush, syncPush } from '../lib/push'
 import { isStandalone, locationState, notificationState, type PermState } from '../lib/platform'
@@ -16,6 +17,7 @@ export default function Lobby() {
   const nav = useNavigate()
   const { playerId, refresh } = useSession()
   const { players } = usePlayers(20_000)
+  const { geo } = useGameCtx()
   const [loc, setLoc] = useState<PermState>('prompt')
   const [push, setPush] = useState(false)
   const [showCostume, setShowCostume] = useState(false)
@@ -38,7 +40,8 @@ export default function Lobby() {
     isStandalone() ? 'Installed' : 'In browser',
     // Alerts only count as on once this phone can actually be reached by push
     notif === 'granted' && push ? 'alerts on' : 'alerts off',
-    loc === 'granted' ? 'location on' : 'location off',
+    // While the game is tracking, the live GPS state is the truth; otherwise the permission check
+    geo.status === 'tracking' || (geo.status !== 'denied' && loc === 'granted') ? 'location on' : 'location off',
   ]
   const allGood = checks.every((c) => !/off|browser/.test(c))
 
