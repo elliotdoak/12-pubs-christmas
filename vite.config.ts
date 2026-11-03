@@ -11,6 +11,8 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'apple-touch-icon.png', 'sprites/**/*.svg'],
+      // Push and notification-tap handlers live in public/push-sw.js
+      workbox: { importScripts: ['push-sw.js'] },
       manifest: {
         name: '12 Pubs of Christmas',
         short_name: '12 Pubs',

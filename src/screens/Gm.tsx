@@ -4,6 +4,7 @@ import { Avatar, AvatarBox, Screen } from '../components/ui'
 import { PinPad } from '../components/PinPad'
 import { TabBar } from '../components/TabBar'
 import { ALARM_LIVE_MS } from '../lib/sound'
+import { notify, type NotifyResult } from '../lib/push'
 import { usePlayers } from '../hooks/usePlayers'
 import { CLAIM_MESSAGES, claimGm, gmResetPin, releaseGm } from '../lib/api'
 import { useGameCtx } from '../lib/game'
@@ -200,10 +201,15 @@ function LiveTab({ flash }: { flash: (m: string) => void }) {
     if (error) return flash('COULD NOT SEND')
     if (msg) setText('')
     game.reload()
-    flash(msg ? 'SENT TO EVERYONE' : 'BANNER CLEARED')
+    if (!msg) return flash('BANNER CLEARED')
+    flash('SENT TO EVERYONE')
+    pushed(await notify('announce'))
   }
 
   const current = game.settings.announcement
+  // The in-app banner or alarm has already gone out; this reports how the push to locked phones went
+  const pushed = (r: NotifyResult) =>
+    flash(r.ok ? `PUSHED TO ${r.players ?? 0} PLAYER${r.players === 1 ? '' : 'S'}${r.failed ? ` · ${r.failed} FAILED` : ''}` : 'PUSH FAILED · IN-APP ONLY')
 
   // Leave alarm: sounds on every open phone for up to 10 minutes, or until stopped
   const [armed, setArmed] = useState(false)
@@ -218,6 +224,7 @@ function LiveTab({ flash }: { flash: (m: string) => void }) {
     if (error) return flash(on ? 'ALARM FAILED' : 'COULD NOT STOP')
     game.reload()
     flash(on ? 'ALARM SOUNDED' : 'ALARM STOPPED')
+    if (on) pushed(await notify('alarm'))
   }
 
   return (
@@ -242,7 +249,7 @@ function LiveTab({ flash }: { flash: (m: string) => void }) {
           <details>
             <summary className="cursor-pointer py-1 font-pix text-[8px] text-muted">HOW THE ALARM WORKS</summary>
             <p className="m-0 mt-1 text-[13px] leading-[17px] text-muted">
-              Every phone with the app open flashes, buzzes and sirens "Drink up, we're leaving now", with the next pub. It keeps going until they tap ON MY WAY or you stop it, and anyone who opens the app in the next 10 minutes gets it too. Locked or closed phones miss it until push notifications are added.
+              Every phone with the app open flashes, buzzes and sirens "Drink up, we're leaving now", with the next pub. It keeps going until they tap ON MY WAY or you stop it, and anyone who opens the app in the next 10 minutes gets it too. Locked or closed phones with alerts on get a notification; tapping it opens the alarm. A notification can't play the siren.
             </p>
           </details>
         </div>
@@ -272,7 +279,7 @@ function LiveTab({ flash }: { flash: (m: string) => void }) {
               SEND ▶
             </button>
           </div>
-          <p className="m-0 text-[13px] leading-[17px] text-muted">Shows as a banner in the app. Push notifications to locked phones come in the next build.</p>
+          <p className="m-0 text-[13px] leading-[17px] text-muted">Shows as a banner in the app, and as a notification on locked phones with alerts on.</p>
         </div>
       </Panel>
     </>
@@ -481,6 +488,8 @@ function PlayersTab({ flash }: { flash: (m: string) => void }) {
   const { game } = useGameCtx()
   const { players, reload: reloadPlayers } = usePlayers(15_000)
   const [seen, setSeen] = useState<Record<string, Seen>>({})
+  // Players with at least one phone signed up for push
+  const [reach, setReach] = useState<Set<string> | null>(null)
   const [sel, setSel] = useState<Set<PlayerId>>(new Set())
   const [bulkPub, setBulkPub] = useState<number | null>(null)
   const [confirmPin, setConfirmPin] = useState<PlayerId | null>(null)
@@ -488,10 +497,14 @@ function PlayersTab({ flash }: { flash: (m: string) => void }) {
   useEffect(() => {
     if (!supabase) return
     const sb = supabase
-    const load = () =>
+    const load = () => {
       sb.from('locations').select('player_id,updated_at,accuracy_m').then(({ data }) => {
         if (data) setSeen(Object.fromEntries((data as Seen[]).map((d) => [d.player_id, d])))
       })
+      sb.rpc('push_coverage').then(({ data }) => {
+        if (data) setReach(new Set((data as { player_id: string }[]).map((d) => d.player_id)))
+      })
+    }
     load()
     const id = setInterval(load, 30_000)
     return () => clearInterval(id)
@@ -588,7 +601,10 @@ function PlayersTab({ flash }: { flash: (m: string) => void }) {
                       {jailed ? `Sleepy Jail · last pub ${n || '-'}` : n ? `Pub ${n} · ${pubByN(n).name}` : 'Not started'}
                       {row && !row.has_pin && ' · not joined'}
                     </div>
-                    <div className="text-[12px] leading-[15px] text-muted">{s ? `Phone seen ${ago(s.updated_at)}` : 'Phone not seen yet'}</div>
+                    <div className="text-[12px] leading-[15px] text-muted">
+                      {s ? `Phone seen ${ago(s.updated_at)}` : 'Phone not seen yet'}
+                      {reach && (reach.has(p.id) ? ' · alerts on' : <span className="text-red"> · no alerts</span>)}
+                    </div>
                   </div>
                 </div>
                 <div className="mt-2 flex flex-wrap justify-end gap-1">

@@ -5,6 +5,7 @@ import {
   canPromptInstall, detectOS, isStandalone, locationState, notificationState, onInstallAvailable,
   promptInstall, requestLocation, requestNotifications, type PermState,
 } from '../lib/platform'
+import { syncPush } from '../lib/push'
 import { load, save } from '../lib/storage'
 
 type Ill = 'browser' | 'share' | 'sheet' | 'menu' | 'menu2' | 'home' | 'bell' | 'pin' | 'battery' | 'done'
@@ -77,7 +78,12 @@ export default function Install() {
   }
 
   const doAct = async () => {
-    if (s.act === 'notif') setNotif(await requestNotifications())
+    if (s.act === 'notif') {
+      const r = await requestNotifications()
+      setNotif(r)
+      // Already picked a player (came here from FIX on the Crew page)? Sign up for push straight away
+      if (r === 'granted') void syncPush()
+    }
     if (s.act === 'loc') setLoc(await requestLocation())
   }
 

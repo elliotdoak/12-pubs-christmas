@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useEffect, type ReactNode } from 'react'
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { SessionProvider, useSession } from './lib/session'
 import { GameProvider } from './lib/game'
@@ -7,6 +7,7 @@ import { Announcement } from './components/Announcement'
 import { LeaveAlarm } from './components/LeaveAlarm'
 import { isGameDay } from './data/crawl'
 import { load } from './lib/storage'
+import { syncPush } from './lib/push'
 import { Logo, Screen } from './components/ui'
 import Install from './screens/Install'
 import Who from './screens/Who'
@@ -40,11 +41,25 @@ export default function App() {
         </DrunkProvider>
         <Announcement />
         <LeaveAlarm />
+        <PushSync />
         <StatusBarCover />
       </BrowserRouter>
       </GameProvider>
     </SessionProvider>
   )
+}
+
+/** Keeps this phone's push subscription saved against the current player: on pick, and every time the app comes back. */
+function PushSync() {
+  const { playerId } = useSession()
+  useEffect(() => {
+    if (!playerId) return
+    void syncPush()
+    const onShow = () => document.visibilityState === 'visible' && void syncPush()
+    document.addEventListener('visibilitychange', onShow)
+    return () => document.removeEventListener('visibilitychange', onShow)
+  }, [playerId])
+  return null
 }
 
 /**

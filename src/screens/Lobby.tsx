@@ -8,6 +8,7 @@ import { usePlayers } from '../hooks/usePlayers'
 import { releasePlayer } from '../lib/api'
 import { useSession } from '../lib/session'
 import { load, save } from '../lib/storage'
+import { dropPush, syncPush } from '../lib/push'
 import { isStandalone, locationState, notificationState, type PermState } from '../lib/platform'
 import { COSTUMES, PLAYERS } from '../data/crawl'
 
@@ -16,6 +17,7 @@ export default function Lobby() {
   const { playerId, refresh } = useSession()
   const { players } = usePlayers(20_000)
   const [loc, setLoc] = useState<PermState>('prompt')
+  const [push, setPush] = useState(false)
   const [showCostume, setShowCostume] = useState(false)
   // Player list starts folded away; remembered per phone
   const [showPlayers, setShowPlayers] = useState(() => load('showPlayers', false))
@@ -27,18 +29,21 @@ export default function Lobby() {
 
   useEffect(() => {
     locationState().then(setLoc)
+    syncPush().then(setPush)
   }, [])
 
   const joined = players?.filter((p) => p.has_pin).length ?? 0
   const notif = notificationState()
   const checks = [
     isStandalone() ? 'Installed' : 'In browser',
-    notif === 'granted' ? 'alerts on' : 'alerts off',
+    // Alerts only count as on once this phone can actually be reached by push
+    notif === 'granted' && push ? 'alerts on' : 'alerts off',
     loc === 'granted' ? 'location on' : 'location off',
   ]
   const allGood = checks.every((c) => !/off|browser/.test(c))
 
   const switchPlayer = async () => {
+    await dropPush()
     await releasePlayer()
     await refresh()
     nav('/who', { replace: true })
