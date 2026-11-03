@@ -6,7 +6,7 @@ import { useGameCtx } from '../lib/game'
 import { useSession } from '../lib/session'
 import { useSignedUrls } from '../lib/photos'
 import type { PhotoRow } from '../hooks/useGame'
-import { niceTime, pubByN } from '../data/crawl'
+import { SCORING, niceTime, pubByN } from '../data/crawl'
 
 export default function Photos() {
   const { playerId, isGm } = useSession()
@@ -32,7 +32,7 @@ export default function Photos() {
         <div className="font-pix text-[10px] text-yolk">THE CREW'S CAMERA ROLL</div>
         <h1 className="m-0 font-pix text-[22px] leading-[28px] text-white [text-shadow:3px_3px_0_var(--color-ink)]">PHOTO WALL</h1>
         <p className="m-0 text-[15px] leading-[19px] text-blush">
-          {visible.length} photo{visible.length === 1 ? '' : 's'} · +2 points for posting at each pub
+          {visible.length} photo{visible.length === 1 ? '' : 's'} · +{SCORING.photo} points for posting at each pub
         </p>
       </header>
 

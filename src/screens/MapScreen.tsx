@@ -8,7 +8,7 @@ import { JailSheet } from '../components/JailSheet'
 import { useScale } from '../hooks/useScale'
 import { useGameCtx } from '../lib/game'
 import { useSession } from '../lib/session'
-import { fmtDistance } from '../lib/geo'
+import { fmtDistance, metres } from '../lib/geo'
 import { JAIL, PLAYERS, PUBS, clockTime, gameNow, gateTime, isGameDay, niceTime, sprite, type PlayerId } from '../data/crawl'
 
 const MAP_W = 390
@@ -57,7 +57,7 @@ export default function MapScreen() {
           <Hud k="CREW" v={`${out} OUT`} />
           <Hud k="TIME" v={now} />
         </div>
-        <GeoChip status={geo.status} active={active} practice={practice} nearest={geo.decision?.nearest ?? null} reason={geo.decision?.reason} />
+        <GeoChip status={geo.status} active={active} practice={practice} nearest={geo.decision?.nearest ?? null} reason={geo.decision?.reason} here={myLast ? PUBS[myLast - 1] : null} next={next ?? null} />
       </header>
 
       <div ref={ref} className="relative w-full overflow-hidden border-t-4 border-ink bg-wool" style={{ height: MAP_H * scale }}>
@@ -79,7 +79,7 @@ export default function MapScreen() {
                 key={p.n}
                 type="button"
                 onClick={() => setOpen(p.n)}
-                aria-label={`Pub ${p.n}: ${p.name}${done ? ', unlocked' : ', locked'}`}
+                aria-label={`Pub ${p.n}: ${p.name}${done ? ', unlocked' : isNext ? ', up next' : ', locked'}`}
                 className="absolute p-0"
                 style={{ left: x - ART_W / 2, top: y + 12 - ART_H, width: ART_W, height: ART_H }}
               >
@@ -157,9 +157,13 @@ function Hud({ k, v }: { k: string; v: string }) {
   )
 }
 
-function GeoChip({ status, active, practice, nearest, reason }: {
+type PubPoint = { name: string; lat: number; lng: number }
+
+function GeoChip({ status, active, practice, nearest, reason, here, next }: {
   status: string; active: boolean; practice: boolean
   nearest: { pub: { name: string; n: number }; m: number } | null; reason?: string
+  /** Your current pub and the next one: once you're on the crawl, the chip shows the walk between them */
+  here: PubPoint | null; next: PubPoint | null
 }) {
   let dot = 'bg-muted'
   let text: string
@@ -178,6 +182,7 @@ function GeoChip({ status, active, practice, nearest, reason }: {
     text =
       reason === 'too_early' ? `At ${nearest.pub.name}? Check-in opens at ${clockTime(gateTime(nearest.pub.n))}.`
       : reason === 'poor_signal' ? `Weak GPS. ${nearest.pub.name} is about ${fmtDistance(nearest.m)} away.`
+      : here && next ? `${next.name} is ${fmtDistance(metres(here.lat, here.lng, next.lat, next.lng))} from ${here.name}`
       : `${nearest.pub.name} is ${fmtDistance(nearest.m)} away`
   }
   return (

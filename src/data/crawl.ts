@@ -69,11 +69,11 @@ export const PAIRS: PlayerId[][] = [
 ]
 
 export const BLINDFOLD_RULES = [
-  'Flip a coin. One of you wears the blindfold.',
-  'Finish your pint, then pass the blindfold on.',
-  'The new wearer finishes this drink and the next, then passes it back.',
-  'You buy your drinks together.',
-  "No breaking your cuffs, or anyone else's.",
+  `Once you're handcuffed to your partner, flip a coin. Loser also wears the blindfold.`,
+  'The blindfold can only be passed on to your partner once the wearer has finished their drink.',
+  'Once the blindfold is passed to the next player, they can pass it back again by finishing their drink (this MUST be a NEW ROUND).',
+  'New rounds cannot be purchased until both players finish their current drinks.',
+  "Breaking your cuffs, or anyone else's is a failure of the challenge.",
 ]
 
 export interface Pub {
@@ -97,33 +97,35 @@ export interface Pub {
   /** Check-in radius in metres */
   radius: number
   demolished?: boolean
+  /** How the GM judges the challenge: pass/fail by default, best/worst dressed, or not at all */
+  judging?: 'dressed' | 'none'
 }
 
 const R = 50 // metres
 
 export const PUBS: Pub[] = [
-  { n: 1, name: 'Old College Bar', arrive: '12:30', leave: '12:40', stay: '10 mins', challenge: 'Last to down a can of beer loses', map: [56, 66], lat: 55.8602, lng: -4.24031, radius: R, address: '219 High Street, G1 1PP', demolished: true, note: 'Knocked down. Still counts.' },
-  { n: 2, name: 'Press Bar', arrive: '12:45', leave: '13:30', stay: '45 mins', challenge: 'Worst dressed / best dressed', map: [196, 60], lat: 55.8603, lng: -4.2438, radius: R, address: '199 Albion Street, G1 1RU' },
-  { n: 3, name: 'Blackfriars', arrive: '13:40', leave: '14:15', stay: '35 mins', challenge: "Handcuffs and blindfolds. Don't break the cuffs: yours or anyone else's.", forfeit: 'One of you wears the hat, one takes their shoes off. Can\'t decide? Flip a coin.', map: [334, 72], lat: 55.85794, lng: -4.244612, radius: R, address: '36 Bell Street, G1 1LG' },
-  { n: 4, name: "O'Neills", arrive: '14:20', leave: '14:55', stay: '35 mins', challenge: "Handcuffs and blindfolds, same as Blackfriars. Don't break the cuffs.", forfeit: 'One of you wears the hat, one takes their shoes off. Can\'t decide? Flip a coin.', map: [330, 200], lat: 55.858088, lng: -4.244612, radius: R, address: '71-73 Albion Street, G1 1NY' },
-  { n: 5, name: 'Vodka Wodka', arrive: '15:00', leave: '15:15', stay: '15 mins', challenge: 'Short stop', note: 'Send a convoy', map: [192, 190], lat: 55.858659, lng: -4.24543, radius: R, address: '78 Candleriggs, G1 1NP' },
-  { n: 6, name: 'Amsterdam', arrive: '15:30', leave: '16:15', stay: '45 mins', challenge: 'Imposters / Chameleon', map: [58, 200], lat: 55.859, lng: -4.2469, radius: R, address: '108 Brunswick Street, G1 1TF' },
-  { n: 7, name: 'The Ark', arrive: '16:30', leave: '17:00', stay: '30 mins', challenge: 'Sing song', map: [60, 330], lat: 55.862095, lng: -4.248483, radius: R, address: '46 North Frederick Street, G1 2BS' },
-  { n: 8, name: "Max's", arrive: '17:10', leave: '17:40', stay: '30 mins', challenge: 'No talking', map: [198, 322], lat: 55.8595, lng: -4.2522, radius: R, address: '73 Queen Street, G1 3BZ' },
-  { n: 9, name: 'The Lab', arrive: '17:45', leave: '18:00', stay: '15 mins', challenge: 'Shot tray relay race', note: 'Send a convoy', map: [334, 334], lat: 55.8595, lng: -4.2538, radius: R, address: '26 Springfield Court, G1 3DQ' },
-  { n: 10, name: 'The Raven', arrive: '18:20', leave: '18:35', stay: '15 mins', challenge: 'No rule. Quick stop.', map: [330, 482], lat: 55.863529, lng: -4.25609, radius: R, address: '81-85 Renfield Street, G2 1LP' },
-  { n: 11, name: 'Felsons', arrive: '18:40', leave: '19:40', stay: '1 hr', challenge: 'Killer', map: [194, 454], lat: 55.8652, lng: -4.2565, radius: R, address: '128 Renfield Street, G2 3AL', approx: true },
-  { n: 12, name: 'Supercube', arrive: '19:30', leave: '21:30', stay: 'Until 9.30pm', challenge: 'Final stop: Supercube, 7.30pm to 9.30pm', note: '£136 paid by Hammy', map: [60, 484], lat: 55.8649, lng: -4.2585, radius: R, address: '104 Bath Street, G2 2EN', approx: true },
+  { n: 1, name: 'Old College Bar', arrive: '12:30', leave: '12:40', stay: '10 mins', challenge: 'Race to tan a can of beer', forfeit: 'Last place wears the hat', map: [56, 66], lat: 55.8602, lng: -4.24031, radius: R, address: '219 High Street, G1 1PP', demolished: true, note: 'Knocked down. Still counts.' },
+  { n: 2, name: 'Press Bar', arrive: '12:45', leave: '13:30', stay: '45 mins', challenge: ' Best Dressed & Worst Dressed', forfeit: 'Worst dressed wears the hat', map: [196, 60], lat: 55.8603, lng: -4.2438, radius: R, address: '199 Albion Street, G1 1RU', judging: 'dressed' },
+  { n: 3, name: 'Blackfriars', arrive: '13:40', leave: '14:15', stay: '35 mins', challenge: "Handcuffs and blindfolds (Part 1)", forfeit: 'One of you wears the hat, one takes their shoes off. Can\'t decide? Flip a coin.', map: [334, 72], lat: 55.85794, lng: -4.244612, radius: R, address: '36 Bell Street, G1 1LG' },
+  { n: 4, name: "O'Neills", arrive: '14:20', leave: '14:55', stay: '35 mins', challenge: "Handcuffs and blindfolds (Part 2)", forfeit: 'One of you wears the hat, one takes their shoes off. Can\'t decide? Flip a coin.', map: [330, 200], lat: 55.858088, lng: -4.244612, radius: R, address: '71-73 Albion Street, G1 1NY' },
+  { n: 5, name: 'Vodka Wodka', arrive: '15:00', leave: '15:15', stay: '15 mins', challenge: 'Everyone takes a shot!!', forfeit: 'Refuse to take a shot? Get the hat on!', note: 'Send organiser ahead of time', map: [192, 190], lat: 55.858659, lng: -4.24543, radius: R, address: '78 Candleriggs, G1 1NP' },
+  { n: 6, name: 'Amsterdam', arrive: '15:30', leave: '16:15', stay: '45 mins', challenge: 'Imposter', forfeit: 'Any Imposter caught out in the game wears the hat. If more than one, flip a coin. If an Imposter wins they pick someone to wear the hat', map: [58, 200], lat: 55.859, lng: -4.2469, radius: R, address: '108 Brunswick Street, G1 1TF', judging: 'none' },
+  { n: 7, name: 'The Ark', arrive: '16:30', leave: '17:00', stay: '30 mins', challenge: 'Sing song', forfeit: 'Miss the song? Get the hat on!', map: [60, 330], lat: 55.862095, lng: -4.248483, radius: R, address: '46 North Frederick Street, G1 2BS' },
+  { n: 8, name: "Max's", arrive: '17:10', leave: '17:40', stay: '30 mins', challenge: 'No talking', forfeit: 'If you speak, the hat you shall seek!', map: [198, 322], lat: 55.8595, lng: -4.2522, radius: R, address: '73 Queen Street, G1 3BZ' },
+  { n: 9, name: 'The Lab', arrive: '17:45', leave: '18:00', stay: '15 mins', challenge: 'Shot tray relay race. Split into two teams and sit in a line. The first person on each team takes a shot and slams it on the table. Only when the first shot glass hits the table can the second team member lift their own from the table. This carries on until one team is first to complete!', forfeit: 'The losing team does numbers to decide who wears the hat. If anyone refuses to take part, their punishment overrides the losing team and the refuser must wear the hat the entire time.', note: 'Send organiser ahead of time', map: [334, 334], lat: 55.8595, lng: -4.2538, radius: R, address: '26 Springfield Court, G1 3DQ' },
+  { n: 10, name: 'The Raven', arrive: '18:20', leave: '18:35', stay: '15 mins', challenge: 'No challenge here, have any drink of your choosing!', map: [330, 482], lat: 55.863529, lng: -4.25609, radius: R, address: '81-85 Renfield Street, G2 1LP', judging: 'none' },
+  { n: 11, name: 'Felsons', arrive: '18:40', leave: '19:40', stay: '1 hr', challenge: 'Killer', forfeit: 'Everytime someone is put out they take the hat', map: [194, 454], lat: 55.8652, lng: -4.2565, radius: R, address: '128 Renfield Street, G2 3AL', approx: true, judging: 'none' },
+  { n: 12, name: 'Supercube', arrive: '19:30', leave: '21:30', stay: 'Until 9.30pm', challenge: 'SING BABY SING!!', map: [60, 484], lat: 55.8649, lng: -4.2585, radius: R, address: '104 Bath Street, G2 2EN', approx: true },
 ]
 
 export const SCORING = {
   reachPub: 10,
   challengePassed: 15,
-  challengeFailed: -5,
-  firstIn: 5,
-  bestDressed: 20,
-  sleepyJail: -10,
-  photo: 2,
+  challengeFailed: -15,
+  bestDressed: 25,
+  worstDressed: -25,
+  sleepyJail: -40,
+  photo: 5,
 } as const
 
 export const sprite = {

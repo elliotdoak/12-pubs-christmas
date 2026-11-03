@@ -7,6 +7,7 @@ import { TabBar } from '../components/TabBar'
 import { usePlayers } from '../hooks/usePlayers'
 import { releasePlayer } from '../lib/api'
 import { useSession } from '../lib/session'
+import { load, save } from '../lib/storage'
 import { isStandalone, locationState, notificationState, type PermState } from '../lib/platform'
 import { COSTUMES, PLAYERS } from '../data/crawl'
 
@@ -16,6 +17,12 @@ export default function Lobby() {
   const { players } = usePlayers(20_000)
   const [loc, setLoc] = useState<PermState>('prompt')
   const [showCostume, setShowCostume] = useState(false)
+  // Player list starts folded away; remembered per phone
+  const [showPlayers, setShowPlayers] = useState(() => load('showPlayers', false))
+  const togglePlayers = () => {
+    setShowPlayers(!showPlayers)
+    save('showPlayers', !showPlayers)
+  }
   const me = PLAYERS.find((p) => p.id === playerId)!
 
   useEffect(() => {
@@ -79,11 +86,20 @@ export default function Lobby() {
       </div>
 
       <section className="panel mx-[14px] mb-4 flex flex-col" aria-label="Players">
-        <div className="flex items-center justify-between bg-ink px-3 py-[10px]">
+        <button
+          type="button"
+          onClick={togglePlayers}
+          aria-expanded={showPlayers}
+          aria-controls="player-list"
+          className="flex w-full items-center justify-between gap-3 bg-ink px-3 py-[10px] text-left"
+        >
           <b className="font-pix text-[12px] font-normal text-yolk">PLAYERS</b>
-          <span className="font-pix text-[9px] text-white">{joined}/{PLAYERS.length} JOINED</span>
-        </div>
-        <ul className="m-0 list-none px-3 py-0">
+          <span className="flex items-center gap-3 font-pix text-[9px] text-white">
+            {joined}/{PLAYERS.length} JOINED
+            <span aria-hidden="true" className="text-yolk">{showPlayers ? '▲' : '▼'}</span>
+          </span>
+        </button>
+        <ul id="player-list" hidden={!showPlayers} className="m-0 list-none px-3 py-0">
           {rows.map((p) => (
             <li key={p.id} className="flex items-center gap-3 border-b-2 border-dashed border-[#E3B9BF] py-[9px] last:border-0">
               <AvatarBox id={p.id} />

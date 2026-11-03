@@ -13,47 +13,33 @@ export interface Score {
   pubs: number
   passed: number
   failed: number
-  firstIn: number
   jailed: boolean
   items: ScoreItem[]
 }
 
 /**
  * Points, all derived from live data so they can't drift:
- *   +10 each pub reached, +15 challenge passed, -5 challenge failed,
- *   +5 first through the door at a pub, -10 if ever sent to Sleepy Jail,
- *   plus any Game Master bonuses (best dressed at Press Bar is +20).
- *   +2 for posting a photo at a pub (once per pub, plus once before the crawl).
+ *   +10 each pub reached, +15 challenge passed, -15 challenge failed,
+ *   -40 if ever sent to Sleepy Jail,
+ *   plus any Game Master bonuses (best dressed at Press Bar +25, worst dressed -25).
+ *   +5 for posting a photo at a pub (once per pub, plus once before the crawl).
  */
 export function computeScores(game: GameState): Score[] {
   // Photo points count once per pub, so spamming the wall doesn't win the night
   const photoPubs: Partial<Record<PlayerId, Set<number>>> = {}
   for (const ph of game.photos) (photoPubs[ph.player_id] ??= new Set()).add(ph.pub_n ?? 0)
-  // Who was first through the door at each pub
-  const first = new Map<number, { id: PlayerId; at: string }>()
-  for (const c of game.checkins) {
-    const f = first.get(c.pub_n)
-    if (!f || c.at < f.at) first.set(c.pub_n, { id: c.player_id, at: c.at })
-  }
 
   const scores = PLAYERS.map((p): Score => {
     const items: ScoreItem[] = []
     const pubs = game.visited[p.id].size
     if (pubs) items.push({ label: `${pubs} pub${pubs === 1 ? '' : 's'} reached`, points: pubs * SCORING.reachPub })
 
-    const mine = game.results.filter((r) => r.player_id === p.id)
+    // Pubs with no pass / fail (or best / worst dressed instead) never score a verdict, even a stale one
+    const mine = game.results.filter((r) => r.player_id === p.id && !pubByN(r.pub_n).judging)
     const passed = mine.filter((r) => r.outcome === 'pass').length
     const failed = mine.length - passed
     if (passed) items.push({ label: `${passed} challenge${passed === 1 ? '' : 's'} passed`, points: passed * SCORING.challengePassed })
     if (failed) items.push({ label: `${failed} challenge${failed === 1 ? '' : 's'} failed`, points: failed * SCORING.challengeFailed })
-
-    const firsts = [...first.entries()].filter(([, f]) => f.id === p.id).map(([n]) => n)
-    if (firsts.length) {
-      items.push({
-        label: `First in at ${firsts.map((n) => pubByN(n).name).join(', ')}`,
-        points: firsts.length * SCORING.firstIn,
-      })
-    }
 
     const jailed = game.jail.some((j) => j.player_id === p.id)
     if (jailed) items.push({ label: 'Sent to Sleepy Jail', points: SCORING.sleepyJail })
@@ -65,7 +51,7 @@ export function computeScores(game: GameState): Score[] {
 
     return {
       id: p.id, pts: items.reduce((s, i) => s + i.points, 0), rank: 0,
-      pubs, passed, failed, firstIn: firsts.length, jailed: game.inJail.has(p.id), items,
+      pubs, passed, failed, jailed: game.inJail.has(p.id), items,
     }
   })
 

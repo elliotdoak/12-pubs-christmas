@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Avatar, Footer, Screen, TopBar } from '../components/ui'
 import { usePlayers } from '../hooks/usePlayers'
+import { useIntro } from '../hooks/useIntro'
 import { useSession } from '../lib/session'
 import type { PlayerId } from '../data/crawl'
 
@@ -10,6 +11,7 @@ export default function Who() {
   const { playerId } = useSession()
   const { players, error } = usePlayers()
   const [pick, setPick] = useState<PlayerId | null>(null)
+  const intro = useIntro(1200, !!players)
 
   return (
     <Screen>
@@ -33,7 +35,7 @@ export default function Who() {
               role="radio"
               aria-checked={sel}
               onClick={() => setPick(p.id)}
-              className={`anim-pop relative flex flex-col items-center gap-1 border-[3px] px-1 pb-2 pt-3 ${
+              className={`${intro ? 'anim-pop' : ''} relative flex flex-col items-center gap-1 border-[3px] px-1 pb-2 pt-3 ${
                 sel ? 'border-yolk bg-wool shadow-[0_0_0_3px_var(--color-ink)]' : p.has_pin && !me ? 'border-ink bg-[#E89AA6]' : 'border-ink bg-wool'
               } text-ink`}
               style={{ animationDelay: `${n * 0.04}s` }}

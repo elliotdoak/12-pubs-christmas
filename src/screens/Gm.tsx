@@ -8,6 +8,7 @@ import { usePlayers } from '../hooks/usePlayers'
 import { CLAIM_MESSAGES, claimGm, gmResetPin, releaseGm } from '../lib/api'
 import { useGameCtx } from '../lib/game'
 import { useSession } from '../lib/session'
+import { load, save } from '../lib/storage'
 import { supabase } from '../lib/supabase'
 import { thumbPath } from '../lib/photos'
 import { PLAYERS, PUBS, SCORING, at, clockTime, gameNow, niceTime, pubByN, setGameClock, startsAt, type PlayerId } from '../data/crawl'
@@ -93,7 +94,12 @@ function ControlRoom() {
   const { refresh, playerId } = useSession()
   const { game } = useGameCtx()
   const { players } = usePlayers(15_000)
-  const [tab, setTab] = useState<Tab>('live')
+  // Remember the GM's tab, so hopping to another screen and back lands where they left off
+  const [tab, setTabState] = useState<Tab>(() => load('gmTab', 'live' as Tab))
+  const setTab = (t: Tab) => {
+    setTabState(t)
+    save('gmTab', t)
+  }
   const [toast, setToast] = useState<string | null>(null)
 
   const flash = useCallback((msg: string) => {
@@ -233,9 +239,12 @@ function LiveTab({ flash }: { flash: (m: string) => void }) {
           ) : (
             <button type="button" className="btn-big !bg-red !text-white" onClick={() => setArmed(true)}>SOUND THE ALARM</button>
           )}
-          <p className="m-0 text-[13px] leading-[17px] text-muted">
-            Every phone with the app open flashes, buzzes and sirens "Drink up, we're leaving now", with the next pub. It keeps going until they tap ON MY WAY or you stop it, and anyone who opens the app in the next 10 minutes gets it too. Locked or closed phones miss it until push notifications are added.
-          </p>
+          <details>
+            <summary className="cursor-pointer py-1 font-pix text-[8px] text-muted">HOW THE ALARM WORKS</summary>
+            <p className="m-0 mt-1 text-[13px] leading-[17px] text-muted">
+              Every phone with the app open flashes, buzzes and sirens "Drink up, we're leaving now", with the next pub. It keeps going until they tap ON MY WAY or you stop it, and anyone who opens the app in the next 10 minutes gets it too. Locked or closed phones miss it until push notifications are added.
+            </p>
+          </details>
         </div>
       </Panel>
 
@@ -270,7 +279,7 @@ function LiveTab({ flash }: { flash: (m: string) => void }) {
   )
 }
 
-/* ---------------- RESULTS: pass / fail per pub ---------------- */
+/* ---------------- RESULTS: pass / fail per pub (best / worst dressed at Press Bar, nothing where there's no verdict) ---------------- */
 
 function ResultsTab({ start, flash }: { start: number; flash: (m: string) => void }) {
   const { game } = useGameCtx()
@@ -297,8 +306,33 @@ function ResultsTab({ start, flash }: { start: number; flash: (m: string) => voi
     flash(error ? 'COULD NOT SAVE' : `${ids.length} PASSED`)
   }
 
+  // Press Bar: one best and one worst dressed, stored as bonuses; tap again to take it back and free it up
+  const dressedBonus = (id: PlayerId) => game.bonuses.find((b) => b.player_id === id && (b.reason === DRESSED.best[0] || b.reason === DRESSED.worst[0]))
+  const holder = (kind: keyof typeof DRESSED) => game.bonuses.find((b) => b.reason === DRESSED[kind][0])?.player_id
+  const taken = (id: PlayerId, kind: keyof typeof DRESSED) => { const h = holder(kind); return !!h && h !== id }
+  const dressed = async (id: PlayerId, kind: keyof typeof DRESSED) => {
+    if (!supabase || taken(id, kind)) return
+    const [reason, points] = DRESSED[kind]
+    const current = dressedBonus(id)
+    if (current) await supabase.from('bonuses').delete().eq('id', current.id)
+    const { error } = current?.reason === reason ? { error: null } : await supabase.from('bonuses').insert({ player_id: id, points, reason })
+    await game.reload()
+    if (error) return flash('COULD NOT SAVE')
+    flash(current?.reason === reason ? `${name(id).toUpperCase()}: CLEARED` : `${name(id).toUpperCase()} ${kind.toUpperCase()} DRESSED`)
+  }
+
   const reached = PLAYERS.filter((p) => game.visited[p.id].has(n))
   const notYet = PLAYERS.filter((p) => !game.visited[p.id].has(n))
+  const status = (id: PlayerId, here: boolean) => {
+    if (!here) return 'Not here yet'
+    if (pub.judging === 'none') return 'Reached'
+    if (pub.judging === 'dressed') {
+      const b = dressedBonus(id)
+      return b ? `${b.reason.replace(' at Press Bar', '')} · ${b.points > 0 ? '+' : ''}${b.points}` : 'Reached · not picked'
+    }
+    const r = game.result(id, n)
+    return r ? (r === 'pass' ? 'Passed' : 'Failed') : 'Reached · not marked'
+  }
 
   return (
     <>
@@ -327,23 +361,41 @@ function ResultsTab({ start, flash }: { start: number; flash: (m: string) => voi
         <ul className="m-0 list-none p-0">
           {[...reached, ...notYet].map((p) => {
             const r = game.result(p.id, n)
+            const d = dressedBonus(p.id)?.reason
             const here = game.visited[p.id].has(n)
             return (
               <li key={p.id} className={`flex items-center gap-3 border-b-2 border-dashed border-[#CFC6B6] px-3 py-2 last:border-0 ${here ? '' : 'opacity-55'}`}>
                 <AvatarBox id={p.id} size={36} />
                 <div className="min-w-0 flex-1">
                   <b className="text-[16px]">{p.name}</b>
-                  <div className="text-[13px] text-muted">{here ? (r ? (r === 'pass' ? 'Passed' : 'Failed') : 'Reached · not marked') : 'Not here yet'}</div>
+                  <div className="text-[13px] text-muted">{status(p.id, here)}</div>
                 </div>
-                <Btn tone={r === 'pass' ? 'pine' : 'white'} pressed={r === 'pass'} onClick={() => set(p.id, 'pass')} label={`${p.name} passed`}>PASS</Btn>
-                <Btn tone={r === 'fail' ? 'red' : 'white'} pressed={r === 'fail'} onClick={() => set(p.id, 'fail')} label={`${p.name} failed`}>FAIL</Btn>
+                {pub.judging === 'dressed' ? (
+                  <>
+                    <Btn tone={d === DRESSED.best[0] ? 'yolk' : 'white'} pressed={d === DRESSED.best[0]} disabled={taken(p.id, 'best')} onClick={() => dressed(p.id, 'best')} label={`${p.name} best dressed`}>BEST</Btn>
+                    <Btn tone={d === DRESSED.worst[0] ? 'red' : 'white'} pressed={d === DRESSED.worst[0]} disabled={taken(p.id, 'worst')} onClick={() => dressed(p.id, 'worst')} label={`${p.name} worst dressed`}>WORST</Btn>
+                  </>
+                ) : !pub.judging && (
+                  <>
+                    <Btn tone={r === 'pass' ? 'pine' : 'white'} pressed={r === 'pass'} onClick={() => set(p.id, 'pass')} label={`${p.name} passed`}>PASS</Btn>
+                    <Btn tone={r === 'fail' ? 'red' : 'white'} pressed={r === 'fail'} onClick={() => set(p.id, 'fail')} label={`${p.name} failed`}>FAIL</Btn>
+                  </>
+                )}
               </li>
             )
           })}
         </ul>
         <div className="flex items-center justify-between gap-2 border-t-4 border-ink p-3">
-          <span className="text-[13px] leading-[17px] text-muted">Tap a highlighted button again to clear it.</span>
-          <Btn tone="pine" onClick={() => markAll('pass')}>PASS ALL UNMARKED</Btn>
+          {pub.judging === 'none' ? (
+            <span className="text-[13px] leading-[17px] text-muted">No pass or fail here. Use bonus points below if someone earns them.</span>
+          ) : pub.judging === 'dressed' ? (
+            <span className="text-[13px] leading-[17px] text-muted">Best dressed {SCORING.bestDressed > 0 ? '+' : ''}{SCORING.bestDressed}, worst dressed {SCORING.worstDressed}. One of each: tap a highlighted button again to clear it and pick someone else.</span>
+          ) : (
+            <>
+              <span className="text-[13px] leading-[17px] text-muted">Tap a highlighted button again to clear it.</span>
+              <Btn tone="pine" onClick={() => markAll('pass')}>PASS ALL UNMARKED</Btn>
+            </>
+          )}
         </div>
       </Panel>
 
@@ -352,12 +404,17 @@ function ResultsTab({ start, flash }: { start: number; flash: (m: string) => voi
   )
 }
 
-/** Bonus points, e.g. best dressed at Press Bar (+20). Shown on the leaderboard breakdown. */
+/** Bonus reasons for Press Bar; the leaderboard shows the reason as the line item. */
+const DRESSED = {
+  best: ['Best dressed at Press Bar', SCORING.bestDressed],
+  worst: ['Worst dressed at Press Bar', SCORING.worstDressed],
+} as const
+
+/** Ad-hoc bonus points for anything else worth rewarding. Shown on the leaderboard breakdown. */
 function BonusPanel({ n, flash }: { n: number; flash: (m: string) => void }) {
   const { game } = useGameCtx()
   const [who, setWho] = useState<PlayerId | ''>('')
   const [reason, setReason] = useState('')
-  const presets: [string, number][] = n === 2 ? [['Best dressed at Press Bar', SCORING.bestDressed]] : []
   const amounts = [5, 10, 20, -5, -10]
 
   const award = async (points: number, why: string) => {
@@ -385,9 +442,6 @@ function BonusPanel({ n, flash }: { n: number; flash: (m: string) => void }) {
           <option value="">Pick a player…</option>
           {PLAYERS.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
         </select>
-        {presets.map(([why, pts]) => (
-          <Btn key={why} tone="yolk" onClick={() => award(pts, why)}>{why.toUpperCase()} +{pts}</Btn>
-        ))}
         <label htmlFor="bonuswhy" className="sr-only">Reason</label>
         <input
           id="bonuswhy"
@@ -581,18 +635,46 @@ function PlayersTab({ flash }: { flash: (m: string) => void }) {
 
 /* ---------------- TESTING ---------------- */
 
-/** Live practice clock, with jumps to kick-off or any pub's arrival time. */
-function GameClock() {
+/**
+ * Live practice clock, with jumps to kick-off or any pub's arrival time.
+ * A jump can also rewind the map to match: anyone past that pub goes back to it, and the GM is
+ * checked in at every pub up to it.
+ */
+function GameClock({ flash }: { flash: (m: string) => void }) {
+  const { playerId } = useSession()
+  const { game } = useGameCtx()
   const [, tick] = useState(0)
+  const [picked, setPicked] = useState('')
+  const [sync, setSync] = useState(true)
   useEffect(() => {
     const id = setInterval(() => tick((n) => n + 1), 1000)
     return () => clearInterval(id)
   }, [])
   const t = gameNow()
+
+  // n = 0 is before kick-off: nobody checked in anywhere
+  const moveCheckins = async (n: number) => {
+    if (!supabase) return
+    const ahead = [...new Set(game.checkins.filter((c) => c.pub_n > n).map((c) => c.player_id))]
+    const { error: delError } = await supabase.from('checkins').delete().gt('pub_n', n)
+    const rows = [
+      ...(n ? ahead.filter((id) => id !== playerId).map((id) => ({ player_id: id, pub_n: n })) : []),
+      ...(playerId ? PUBS.filter((p) => p.n <= n).map((p) => ({ player_id: playerId, pub_n: p.n })) : []),
+    ].map((r) => ({ ...r, source: 'gm', by_player: null }))
+    const { error } = rows.length
+      ? await supabase.from('checkins').upsert(rows, { onConflict: 'player_id,pub_n', ignoreDuplicates: true })
+      : { error: null }
+    await game.reload()
+    if (delError || error) return flash('COULD NOT MOVE CHECK-INS')
+    flash(n ? `MAP MOVED TO PUB ${n}` : 'MAP CLEARED FOR KICK-OFF')
+  }
+
   const jump = (v: string) => {
+    setPicked(v)
     if (!v) return
     setGameClock(Number(v))
     tick((n) => n + 1)
+    if (sync) moveCheckins(PUBS.filter((p) => at(p.arrive) <= Number(v)).length)
   }
   return (
     <div className="flex flex-col gap-2 border-t-4 border-ink p-3">
@@ -604,7 +686,7 @@ function GameClock() {
       </div>
       <label className="flex items-center gap-2 text-[15px]">
         <span className="shrink-0">Jump to</span>
-        <select value="" onChange={(e) => jump(e.target.value)} className="min-w-0 flex-1 border-2 border-ink bg-white p-2 text-[15px]">
+        <select value={picked} onChange={(e) => jump(e.target.value)} className="min-w-0 flex-1 border-2 border-ink bg-white p-2 text-[15px]">
           <option value="">Pick a time…</option>
           <option value={startsAt() - 5 * 60_000}>5 mins before kick-off</option>
           <option value={startsAt()}>Kick-off · 12.30pm</option>
@@ -612,6 +694,10 @@ function GameClock() {
             <option key={p.n} value={at(p.arrive)}>{p.n}. {p.name} · {niceTime(p.arrive)}</option>
           ))}
         </select>
+      </label>
+      <label className="flex items-start gap-3 text-[14px] leading-[18px]">
+        <input type="checkbox" checked={sync} onChange={(e) => setSync(e.target.checked)} className="mt-[2px] h-5 w-5 shrink-0 accent-[var(--color-pine)]" />
+        Move the map to match. Anyone past that pub goes back to it, and you're checked in at every pub up to it. This changes check-ins on every phone.
       </label>
     </div>
   )
@@ -654,7 +740,7 @@ function TestingTab({ flash, onExit }: { flash: (m: string) => void; onExit: () 
           <input type="checkbox" checked={practice} onChange={(e) => setPractice(e.target.checked)} className="mt-[2px] h-5 w-5 shrink-0 accent-[var(--color-pine)]" />
           Jumps this phone to Saturday 28 November, 12.30pm, and runs the clock from there. The app behaves exactly as on the night. Other phones aren't affected. Turn it off when you're done.
         </label>
-        {practice && <GameClock />}
+        {practice && <GameClock flash={flash} />}
       </Panel>
 
       <Panel title="FULL RESET" hint="Can't be undone">

@@ -51,7 +51,6 @@ export default function Scores() {
             const mine = s.id === playerId
             const expanded = open === s.id
             const bits = [`${s.pubs} pubs`, `${s.passed} won`, `${s.failed} lost`]
-            if (s.firstIn) bits.push(`first in ×${s.firstIn}`)
             if (s.jailed) bits.push('in jail')
             return (
               <li key={s.id} className={intro ? 'anim-pop' : undefined} style={{ animationDelay: `${i * 0.05}s` }}>
@@ -103,8 +102,8 @@ export default function Scores() {
           <li><b className="text-yolk">+{SCORING.reachPub}</b> each pub you reach</li>
           <li><b className="text-yolk">+{SCORING.challengePassed}</b> challenge passed</li>
           <li><b className="text-yolk">{SCORING.challengeFailed}</b> challenge failed</li>
-          <li><b className="text-yolk">+{SCORING.firstIn}</b> first through the door</li>
           <li><b className="text-yolk">+{SCORING.bestDressed}</b> best dressed at Press Bar</li>
+          <li><b className="text-yolk">{SCORING.worstDressed}</b> worst dressed at Press Bar</li>
           <li><b className="text-yolk">+{SCORING.photo}</b> posting a photo at each pub</li>
           <li><b className="text-yolk">{SCORING.sleepyJail}</b> sent to Sleepy Jail</li>
           <li className="mt-1 text-[14px] leading-[18px] text-[#D8D2C6]">The Game Master can hand out bonus points too. Tap any row for the breakdown.</li>

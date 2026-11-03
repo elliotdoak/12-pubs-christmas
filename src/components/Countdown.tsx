@@ -1,18 +1,24 @@
 import { Link } from 'react-router-dom'
-import { at, isPractice, niceTime, pubByN, PUBS, startsAt } from '../data/crawl'
+import { at, gameNow, isPractice, niceTime, pubByN, PUBS, startsAt } from '../data/crawl'
 import { useCountdown } from '../hooks/useCountdown'
 import { useGameCtx } from '../lib/game'
 import { useSession } from '../lib/session'
 
-/** Before the crawl: countdown to kick-off. Once you've checked in: time left at your current pub, and where's next. */
+/**
+ * Before the crawl: countdown to kick-off. Once you've checked in: time left at your current pub, and where's next.
+ * Past kick-off with no check-in (running late, or a practice-clock jump): follows the schedule instead.
+ */
 export function Countdown() {
   const { playerId } = useSession()
   const { game } = useGameCtx()
   const last = playerId ? game.lastPub[playerId] ?? 0 : 0
-  const target = last ? at(pubByN(last).leave) : startsAt()
+  const now = gameNow()
+  const planned = !last && now >= startsAt() ? [...PUBS].reverse().find((p) => at(p.arrive) <= now)!.n : 0
+  const pub = last || planned
+  const target = pub ? at(pubByN(pub).leave) : startsAt()
   const t = useCountdown(new Date(target).toISOString())
 
-  if (last) return <NextPub last={last} t={t} />
+  if (pub) return <NextPub last={pub} planned={!!planned} t={t} />
 
   const units: [string, number][] = [
     ['DAYS', t.days],
@@ -31,7 +37,7 @@ export function Countdown() {
 
 type T = ReturnType<typeof useCountdown>
 
-function NextPub({ last, t }: { last: number; t: T }) {
+function NextPub({ last, planned, t }: { last: number; planned: boolean; t: T }) {
   const here = pubByN(last)
   const next = PUBS.find((p) => p.n > last)
 
@@ -41,8 +47,9 @@ function NextPub({ last, t }: { last: number; t: T }) {
     ['SECS', t.seconds],
   ]
   return (
-    <Link to="/map" className="flex flex-col gap-3 no-underline" aria-label={next ? `Leave ${here.name} at ${niceTime(here.leave)}. Next pub: ${next.name}, get there by ${niceTime(next.arrive)}.` : `Final pub: ${here.name}, until ${niceTime(here.leave)}.`}>
+    <Link to="/map" className="flex flex-col gap-3 no-underline" aria-label={next ? `Leave ${here.name} at ${niceTime(here.leave)}. Next pub: ${next.name}.` : `Final pub: ${here.name}, until ${niceTime(here.leave)}.`}>
       {isPractice() && <div className="tag self-center bg-yolk text-ink">PRACTICE · GAME CLOCK RUNNING</div>}
+      {planned && <div className="self-center text-center text-[15px] leading-[19px] text-blush">Not checked in yet. Here's where the crew should be.</div>}
       {!t.done && <div className="self-center text-center font-pix text-[10px] leading-[14px] text-white">{next ? `TIME LEFT AT ${here.name.toUpperCase()}` : 'LAST ORDERS IN'}</div>}
       {t.done ? (
         <div className="anim-blink border-4 border-ink bg-red-dark py-3 text-center font-pix text-[11px] text-yolk">{next ? 'TIME TO LEAVE!' : "THAT'S A WRAP"}</div>
@@ -54,9 +61,8 @@ function NextPub({ last, t }: { last: number; t: T }) {
         <span className="font-pix text-[9px] text-yolk">NEXT PUB · PUB {next.n} OF 12</span>
         <span className="font-pix text-[15px] leading-[22px] text-white">{next.name.toUpperCase()}</span>
         <span className="text-[15px] leading-[19px] text-[#D8D2C6]">{next.address}</span>
-        <span className="mt-1 flex flex-wrap items-center gap-2">
-          <span className="bg-yolk px-2 py-1 font-pix text-[10px] text-ink">GET THERE BY {niceTime(next.arrive).toUpperCase()}</span>
-          <span className="text-[14px] text-[#D8D2C6]">Leave {here.name} at {niceTime(here.leave)}</span>
+        <span className="mt-1 self-start bg-yolk px-2 py-1 font-pix text-[10px] leading-[14px] text-ink">
+          LEAVE {here.name.toUpperCase()} AT {niceTime(here.leave).toUpperCase()}
         </span>
       </div>
       ) : (

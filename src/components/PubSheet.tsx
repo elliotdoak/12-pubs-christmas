@@ -6,7 +6,7 @@ import { PHOTO_LIMIT, useSignedUrls } from '../lib/photos'
 import type { PhotoRow } from '../hooks/useGame'
 import { useGameCtx } from '../lib/game'
 import { useSession } from '../lib/session'
-import { BLINDFOLD_RULES, PAIRS, PLAYERS, niceTime, pubByN, sprite } from '../data/crawl'
+import { BLINDFOLD_RULES, PAIRS, PLAYERS, SCORING, niceTime, pubByN, sprite } from '../data/crawl'
 
 export function PubSheet({ n, onClose }: { n: number; onClose: () => void }) {
   const { playerId } = useSession()
@@ -15,19 +15,22 @@ export function PubSheet({ n, onClose }: { n: number; onClose: () => void }) {
   const mine = playerId ? game.visited[playerId] : new Set<number>()
   const unlocked = mine.has(n)
   const here = !!playerId && game.lastPub[playerId] === n
+  // Your next pub is open for a look ahead: challenge and rules show, photos wait until you arrive
+  const upNext = !unlocked && !!playerId && n === (game.lastPub[playerId] ?? 0) + 1
+  const open = unlocked || upNext
   const verdict = playerId ? game.result(playerId, n) : undefined
   const reached = PLAYERS.filter((p) => game.visited[p.id].has(n))
   const cuffs = n === 3 || n === 4
   const myGroup = playerId ? PAIRS.find((g) => g.includes(playerId)) : undefined
 
-  const state = verdict === 'pass' ? 'YOU CLEARED IT' : verdict === 'fail' ? 'YOU FAILED IT' : here ? 'YOU ARE HERE' : unlocked ? 'UNLOCKED FOR YOU' : 'LOCKED FOR YOU'
+  const state = verdict === 'pass' ? 'YOU CLEARED IT' : verdict === 'fail' ? 'YOU FAILED IT' : here ? 'YOU ARE HERE' : unlocked ? 'UNLOCKED FOR YOU' : upNext ? 'UP NEXT' : 'LOCKED FOR YOU'
 
   return (
     <Sheet label={`Pub ${n}: ${pub.name}`} onClose={onClose}>
       <div className="flex items-start gap-3 p-4 pb-3">
         <span className={`flex h-10 w-10 shrink-0 items-center justify-center border-[3px] border-ink font-pix text-[14px] ${unlocked ? 'bg-red text-white' : 'bg-white'}`}>{n}</span>
         <div className="min-w-0 flex-1">
-          <div className={`font-pix text-[9px] ${unlocked ? 'text-pine' : 'text-red'}`}>PUB {n} · {state}</div>
+          <div className={`font-pix text-[9px] ${open ? 'text-pine' : 'text-red'}`}>PUB {n} · {state}</div>
           <h2 className="m-0 mt-1 font-pix text-[15px] leading-[20px]">{pub.name.toUpperCase()}</h2>
         </div>
         <SheetClose onClose={onClose} />
@@ -39,8 +42,8 @@ export function PubSheet({ n, onClose }: { n: number; onClose: () => void }) {
       </div>
 
       <div className="relative mx-4 mt-3 flex h-[132px] items-center justify-center border-[3px] border-ink bg-sky">
-        <img src={sprite.pub(n)} alt="" width={150} height={120} className={`pixel ${unlocked ? '' : 'opacity-50 grayscale-[60%]'}`} />
-        {!unlocked && <img src="/sprites/ui/lock.svg" alt="" width={48} height={44} className="pixel absolute" />}
+        <img src={sprite.pub(n)} alt="" width={150} height={120} className={`pixel ${open ? '' : 'opacity-50 grayscale-[60%]'}`} />
+        {!open && <img src="/sprites/ui/lock.svg" alt="" width={48} height={44} className="pixel absolute" />}
         {pub.demolished && <span className="absolute bottom-1 left-1 bg-ink px-1 font-pix text-[7px] text-yolk">KNOCKED DOWN. STILL COUNTS.</span>}
       </div>
       <p className="mx-4 my-2 text-[14px] leading-[18px] text-muted">{pub.address}</p>
@@ -52,17 +55,22 @@ export function PubSheet({ n, onClose }: { n: number; onClose: () => void }) {
         </div>
       </div>
 
-      {unlocked ? (
+      {open ? (
         <div className="mx-4 mt-3 flex flex-col gap-3">
-          <Box label="CHALLENGE" tone="pine" strong>{pub.challenge}</Box>
+          <Box label="CHALLENGE" tone="pine">{pub.challenge}</Box>
           <Box label="IF YOU FAIL…" tone="red">{pub.forfeit ?? 'No forfeit set for this pub. Pride is the only casualty.'}</Box>
           {pub.note && <Box label="NOTE" tone="royal">{pub.note}</Box>}
           {cuffs && (
-            <Box label="HANDCUFFS AND BLINDFOLDS" tone="royal">
+            <Box label="RULES:" tone="royal">
               {myGroup && (
-                <div className="mb-2 flex items-center gap-2">
+                <div className="mb-2 flex flex-wrap items-center gap-2">
                   <span className="text-[15px]">You're cuffed to</span>
-                  {myGroup.filter((id) => id !== playerId).map((id) => <Avatar key={id} id={id} size={24} />)}
+                  {myGroup.filter((id) => id !== playerId).map((id) => (
+                    <span key={id} className="flex items-center gap-1">
+                      <Avatar id={id} size={24} />
+                      <b className="text-[15px]">{PLAYERS.find((p) => p.id === id)?.name}</b>
+                    </span>
+                  ))}
                   {myGroup.length === 1 && <span className="text-[15px] text-muted">[TK] nobody yet</span>}
                 </div>
               )}
@@ -71,9 +79,6 @@ export function PubSheet({ n, onClose }: { n: number; onClose: () => void }) {
               </ol>
             </Box>
           )}
-          <div className={`border-[3px] border-dashed border-ink p-3 text-center font-pix text-[11px] ${verdict === 'pass' ? 'text-pine' : verdict === 'fail' ? 'text-red' : 'text-muted'}`}>
-            {verdict === 'pass' ? 'LEVEL CLEAR!' : verdict === 'fail' ? 'PUNISHMENT SERVED' : 'AWAITING THE GAME MASTER'}
-          </div>
         </div>
       ) : (
         <div className="mx-4 mt-3 border-[3px] border-ink bg-white p-4 text-center">
@@ -89,15 +94,9 @@ export function PubSheet({ n, onClose }: { n: number; onClose: () => void }) {
   )
 }
 
-function Box({ label, tone, strong, children }: { label: string; tone: 'pine' | 'red' | 'royal'; strong?: boolean; children: React.ReactNode }) {
+function Box({ label, tone, children }: { label: string; tone: 'pine' | 'red' | 'royal'; children: React.ReactNode }) {
   const c = { pine: 'text-pine', red: 'text-red', royal: 'text-royal' }[tone]
-  // The challenge is what people open the sheet for, so it gets the loudest box
-  return strong ? (
-    <div className="border-4 border-ink bg-white p-3 shadow-[inset_0_0_0_3px_var(--color-pine),4px_4px_0_var(--color-ink)]">
-      <div className={`mb-2 font-pix text-[11px] ${c}`}>{label}</div>
-      <div className="text-[18px] font-bold leading-[26px] text-ink">{children}</div>
-    </div>
-  ) : (
+  return (
     <div className="border-[3px] border-ink bg-white p-3">
       <div className={`mb-1 font-pix text-[9px] ${c}`}>{label}</div>
       <div className="text-[17px] leading-[22px]">{children}</div>
@@ -130,7 +129,7 @@ function PubPhotos({ n }: { n: number }) {
           ))}
         </div>
       ) : (
-        <p className="m-0 text-[14px] leading-[18px] text-muted">No photos here yet. +2 points for the first one you post.</p>
+        <p className="m-0 text-[14px] leading-[18px] text-muted">No photos here yet. +{SCORING.photo} points for the first one you post.</p>
       )}
       {open && <Lightbox photo={open} onClose={() => setOpen(null)} />}
     </div>
