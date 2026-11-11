@@ -14,13 +14,13 @@ interface Step { t: string; p: string; ill: Ill; act?: 'notif' | 'loc' }
 // Part 1 runs in the browser and ends at "open it from your home screen".
 const INSTALL: Record<'ios' | 'android', Step[]> = {
   ios: [
-    { t: 'OPEN IN SAFARI', p: 'Got the link in WhatsApp? Tap ••• then Open in Safari. The game only installs from Safari.', ill: 'browser' },
-    { t: 'TAP SHARE', p: "Tap the Share button in Safari's toolbar. On newer iPhones it sits under the ••• button.", ill: 'share' },
+    { t: 'OPEN IN SAFARI OR CHROME', p: "Already in Safari or Chrome? Tap NEXT. Still inside WhatsApp? Tap ••• then Open in Safari, because it won't install from there.", ill: 'browser' },
+    { t: 'TAP SHARE', p: 'In Safari, tap the Share button in the toolbar (on newer iPhones it sits under •••). In Chrome, tap the Share button next to the address bar.', ill: 'share' },
     { t: 'ADD TO HOME SCREEN', p: 'Scroll down the list, tap Add to Home Screen, then tap Add.', ill: 'sheet' },
-    { t: 'OPEN IT FROM YOUR HOME SCREEN', p: "Close Safari. Find the 12 Pubs icon and open the game from there. That's what makes alerts work.", ill: 'home' },
+    { t: 'OPEN IT FROM YOUR HOME SCREEN', p: "Close the browser. Find the 12 Pubs icon and open the game from there. That's what makes alerts work.", ill: 'home' },
   ],
   android: [
-    { t: 'OPEN IN CHROME', p: 'Got the link in WhatsApp? Tap ⋮ then Open in Chrome.', ill: 'browser' },
+    { t: 'OPEN IN CHROME', p: 'Already in Chrome? Tap NEXT. Still inside WhatsApp? Tap ⋮ then Open in Chrome, because it won\'t install from there.', ill: 'browser' },
     { t: 'TAP THE ⋮ MENU', p: 'Tap the three dots in the top-right corner of Chrome.', ill: 'menu' },
     { t: 'TAP INSTALL APP', p: 'Tap Install app (or Add to Home screen, then Install).', ill: 'menu2' },
     { t: 'OPEN IT FROM YOUR HOME SCREEN', p: 'Find the 12 Pubs icon and open the game from there.', ill: 'home' },

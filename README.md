@@ -36,7 +36,7 @@ To test on a phone on the same Wi-Fi: `npm run dev -- --host`, then open the net
 ## What players get
 
 ### Install and join
-- **Install walkthrough** for iPhone (Safari → Add to Home Screen) and Android (Chrome → Install app), then alerts and location permissions inside the installed app.
+- **Install walkthrough** for iPhone (Safari or Chrome → Share → Add to Home Screen) and Android (Chrome → Install app), then alerts and location permissions inside the installed app.
 - **Pick your player and set a 4-digit PIN.** Wrong PINs lock you out for 10 minutes. The Game Master can wipe a forgotten PIN.
 
 ### Crew (home)
@@ -118,7 +118,7 @@ Phones with alerts on get these even when the app is closed or the phone is lock
 Leave reminders come 10 minutes before each pub's leave time, or 5 minutes for stops of 15 minutes or less. Each pub sends once, and Supercube sends "LAST ORDERS".
 
 **Limits worth knowing:**
-- **iPhone needs iOS 16.4 or later, with the app opened from the home screen.** A Safari tab can't get alerts.
+- **iPhone needs iOS 16.4 or later, with the app opened from the home screen** (added from Safari or Chrome). A browser tab can't get alerts.
 - **A notification is a normal banner and ping.** It can't play the siren or flash the screen. The full alarm only shows when the app is opened.
 - **Delivery isn't guaranteed.** Low Power Mode, Focus modes and bad signal can delay or silence it. Check **GM → Players** for anyone showing "no alerts".
 
