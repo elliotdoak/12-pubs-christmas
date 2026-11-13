@@ -4,6 +4,7 @@ import { useGameCtx } from '../lib/game'
 import { useSession } from '../lib/session'
 import { load, save } from '../lib/storage'
 import { ALARM_LIVE_MS, playSiren } from '../lib/sound'
+import { ScrollLock } from './Sheet'
 import { PUBS } from '../data/crawl'
 
 /** Full-screen "drink up, we're leaving" alarm, set off by the Game Master. */
@@ -42,6 +43,7 @@ export function LeaveAlarm() {
 
   return (
     <div role="alertdialog" aria-modal="true" aria-labelledby="alarm-title" className="anim-alarm fixed inset-0 z-[80] flex flex-col items-center justify-center gap-5 bg-red px-6 text-center text-white" style={{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'max(24px, env(safe-area-inset-bottom))' }}>
+      <ScrollLock />
       <img src="/sprites/ui/bell.svg" alt="" width={96} height={96} className="pixel anim-ring" />
       <div className="font-pix text-[12px]">GAME MASTER ALARM</div>
       <h2 id="alarm-title" className="m-0 font-pix text-[26px] leading-[36px] [text-shadow:4px_4px_0_var(--color-ink)]">

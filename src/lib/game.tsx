@@ -4,7 +4,7 @@ import { rememberLocation } from './platform'
 import { useSession } from './session'
 import { useGame, type GameState } from '../hooks/useGame'
 import { decide, type CheckinDecision, type Fix } from './geo'
-import { isGameDay, isPractice, setPracticeMode, type Pub, type PlayerId } from '../data/crawl'
+import { isAway, isGameDay, isPractice, setPracticeMode, type Pub, type PlayerId } from '../data/crawl'
 
 export type GeoStatus = 'off' | 'waiting' | 'tracking' | 'denied' | 'unsupported'
 
@@ -38,7 +38,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const resetSeen = useRef<string | null | undefined>(undefined)
   const lastFix = useRef<Fix | null>(null)
 
-  const active = !!playerId && isGameDay()
+  // Players who can't make it (Div, in the hospital) never get auto check-in
+  const active = !!playerId && !isAway(playerId) && isGameDay()
 
   const setPractice = (on: boolean) => {
     setPracticeMode(on)

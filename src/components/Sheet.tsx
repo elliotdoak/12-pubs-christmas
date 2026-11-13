@@ -1,9 +1,17 @@
 import { useEffect, useRef, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
+import { useScrollLock } from '../hooks/useScrollLock'
 
-/** Bottom sheet with a scrim, focus on open and Escape to close. */
+/** For full-screen overlays that render conditionally (the leave alarm). */
+export function ScrollLock() {
+  useScrollLock()
+  return null
+}
+
+/** Bottom sheet with a scrim, focus on open and Escape to close. The page behind can't scroll. */
 export function Sheet({ label, onClose, children }: { label: string; onClose?: () => void; children: ReactNode }) {
   const ref = useRef<HTMLDivElement>(null)
+  useScrollLock()
   useEffect(() => {
     ref.current?.focus()
     if (!onClose) return
@@ -21,7 +29,7 @@ export function Sheet({ label, onClose, children }: { label: string; onClose?: (
         aria-modal="true"
         aria-label={label}
         onClick={(e) => e.stopPropagation()}
-        className="anim-slideup max-h-[88dvh] w-full max-w-[430px] overflow-y-auto border-4 border-b-0 border-ink bg-wool text-ink outline-none"
+        className="anim-slideup max-h-[88dvh] w-full max-w-[430px] overflow-y-auto overscroll-contain border-4 border-b-0 border-ink bg-wool text-ink outline-none"
         style={{ paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}
       >
         {children}

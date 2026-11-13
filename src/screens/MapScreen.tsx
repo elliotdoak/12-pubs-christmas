@@ -5,14 +5,16 @@ import { TabBar } from '../components/TabBar'
 import { PubSheet } from '../components/PubSheet'
 import { CrewSheet } from '../components/CrewSheet'
 import { JailSheet } from '../components/JailSheet'
+import { HospitalSheet } from '../components/HospitalSheet'
 import { useScale } from '../hooks/useScale'
 import { useGameCtx } from '../lib/game'
 import { useSession } from '../lib/session'
 import { fmtDistance, metres } from '../lib/geo'
-import { JAIL, PLAYERS, PUBS, clockTime, gameNow, gateTime, isGameDay, niceTime, sprite, type PlayerId } from '../data/crawl'
+import { AWAY, CREW, HOSPITAL, HOSPITAL_FAMILY, JAIL, PUBS, TREE, clockTime, gameNow, gateTime, isGameDay, niceTime, sprite, type PlayerId } from '../data/crawl'
 
 const MAP_W = 390
-const MAP_H = 624
+const MAP_H = 672 // ground runs 48px below the pubs for the hospital, tree and jail row
+const ROUTE_H = 624
 const ART_W = 72
 const ART_H = 58
 
@@ -29,21 +31,22 @@ export default function MapScreen() {
   const { ref, scale } = useScale<HTMLDivElement>(MAP_W)
   const [open, setOpen] = useState<number | null>(null)
   const [jailOpen, setJailOpen] = useState(false)
+  const [hospitalOpen, setHospitalOpen] = useState(false)
   const now = useClock()
 
   const myLast = playerId ? game.lastPub[playerId] : 0
   const visited = playerId ? game.visited[playerId] : new Set<number>()
   const next = PUBS.find((p) => p.n > myLast)
-  const out = PLAYERS.filter((p) => game.lastPub[p.id] > 0 && !game.inJail.has(p.id)).length
+  const out = CREW.filter((p) => game.lastPub[p.id] > 0 && !game.inJail.has(p.id)).length
 
   // Group players by the pub they're at (their highest check-in)
   const atPub = new Map<number, PlayerId[]>()
-  for (const p of PLAYERS) {
+  for (const p of CREW) {
     const n = game.lastPub[p.id]
     if (!n || game.inJail.has(p.id)) continue
     atPub.set(n, [...(atPub.get(n) ?? []), p.id])
   }
-  const jailed = PLAYERS.filter((p) => game.inJail.has(p.id)).map((p) => p.id)
+  const jailed = CREW.filter((p) => game.inJail.has(p.id)).map((p) => p.id)
 
   return (
     <Screen>
@@ -63,7 +66,7 @@ export default function MapScreen() {
       <div ref={ref} className="relative w-full overflow-hidden border-t-4 border-ink bg-wool" style={{ height: MAP_H * scale }}>
         <div className="absolute left-0 top-0 origin-top-left" style={{ width: MAP_W, height: MAP_H, transform: `scale(${scale})` }}>
           <img src="/sprites/map/ground.svg" alt="" className="pixel absolute left-0 top-0" width={MAP_W} height={MAP_H} />
-          <img src="/sprites/map/route.svg" alt="" className="pixel absolute left-0 top-0" width={MAP_W} height={MAP_H} />
+          <img src="/sprites/map/route.svg" alt="" className="pixel absolute left-0 top-0" width={MAP_W} height={ROUTE_H} />
 
           {DRINKS.map((d) => (
             <img key={d.src} src={d.src} alt="" width={DRINK} height={DRINK} className="pixel pointer-events-none absolute" style={{ left: d.left, top: d.top }} />
@@ -97,8 +100,9 @@ export default function MapScreen() {
 
           {[...atPub.entries()].map(([n, ids]) => {
             const [x, y] = PUBS[n - 1].map
+            // Above everything else, so a crowd at a pub is never hidden
             return (
-              <div key={n} className="pointer-events-none absolute flex flex-wrap justify-center gap-[2px]" style={{ left: Math.min(Math.max(x - 52, 2), MAP_W - 106), top: y + 16, width: 104 }}>
+              <div key={n} className="pointer-events-none absolute z-10 flex flex-wrap justify-center gap-[2px]" style={{ left: Math.min(Math.max(x - 52, 2), MAP_W - 106), top: y + 16, width: 104 }}>
                 {ids.map((id, i) => (
                   <div key={id} className={`relative ${id === playerId ? 'z-10' : ''}`}>
                     {id === playerId && <span className="absolute -top-[13px] left-1/2 -translate-x-1/2 bg-red px-[2px] font-pix text-[6px] text-white">YOU</span>}
@@ -128,6 +132,28 @@ export default function MapScreen() {
               ))}
             </div>
           </button>
+
+          <img src="/sprites/map/tree.svg" alt="" width={TREE.width} height={TREE.height} className="pixel pointer-events-none absolute" style={{ left: TREE.left, top: TREE.top }} />
+
+          {AWAY.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setHospitalOpen(true)}
+              aria-label={`Hospital: ${AWAY.map((p) => p.name).join(' and ')} can't make it, with family. See why.`}
+              className="absolute p-0 text-left"
+              style={{ left: HOSPITAL.left, top: HOSPITAL.top, width: HOSPITAL.width }}
+            >
+              <img src="/sprites/map/hospital.svg" alt="" width={HOSPITAL.width} height={60} className="pixel" />
+              <span className="absolute -top-[14px] left-1/2 -translate-x-1/2 whitespace-nowrap bg-ink px-1 font-pix text-[7px] text-yolk">HOSPITAL</span>
+              {/* In the ward window: Div, his wife and the baby */}
+              <div className="absolute left-[13px] top-[36px] flex h-4 items-end gap-px">
+                {AWAY.map((p) => <Avatar key={p.id} id={p.id} size={16} />)}
+                {HOSPITAL_FAMILY.map((f) => (
+                  <img key={f.src} src={f.src} alt="" width={f.w} height={f.h} className="pixel" />
+                ))}
+              </div>
+            </button>
+          )}
         </div>
       </div>
 
@@ -144,6 +170,7 @@ export default function MapScreen() {
 
       {open !== null && <PubSheet n={open} onClose={() => setOpen(null)} />}
       {jailOpen && <JailSheet onClose={() => setJailOpen(false)} />}
+      {hospitalOpen && <HospitalSheet onClose={() => setHospitalOpen(false)} />}
       {justCheckedIn && <CrewSheet pub={justCheckedIn} />}
     </Screen>
   )

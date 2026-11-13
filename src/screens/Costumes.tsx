@@ -4,7 +4,7 @@ import { TabBar } from '../components/TabBar'
 import { Sheet, SheetClose } from '../components/Sheet'
 import { useSession } from '../lib/session'
 import { useIntro } from '../hooks/useIntro'
-import { COSTUMES, PLAYERS, sprite, type Player } from '../data/crawl'
+import { COSTUMES, CREW, PLAYERS, sprite, type Player } from '../data/crawl'
 
 /** Hall of Fame: every costume has been done before. This is the reference for recreating it. */
 export default function Costumes() {
@@ -13,7 +13,7 @@ export default function Costumes() {
   const intro = useIntro()
   const me = PLAYERS.find((p) => p.id === playerId)
   // Oldest first, so the grid reads as ten years of crawls
-  const byYear = [...PLAYERS].sort((a, b) => (COSTUMES[a.costume].year ?? 9999) - (COSTUMES[b.costume].year ?? 9999))
+  const byYear = [...CREW].sort((a, b) => (COSTUMES[a.costume].year ?? 9999) - (COSTUMES[b.costume].year ?? 9999))
 
   return (
     <Screen>

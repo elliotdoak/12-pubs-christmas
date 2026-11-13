@@ -61,6 +61,10 @@ Deno.serve(async (req) => {
   // Same rule as the app: your next pub is the first one after your last check-in
   const nextFor = (id: string) => (pubs as Pub[] | null)?.find((p) => p.n > (last[id] ?? 0))
 
+  // Players who can't make the crawl (Div, in the hospital) still get announcements, but no alarm or leave reminders
+  const { data: crew } = await db.from('players').select('id').is('away', null)
+  const onCrawl = ((crew ?? []) as { id: string }[]).map((p) => p.id)
+
   let only: string[] | null = null // player ids to send to; null means everyone
   let ttl = 3600
   let messageFor: (playerId: string) => Message
@@ -71,6 +75,7 @@ Deno.serve(async (req) => {
     const msg: Message = { title: 'GAME MASTER', body: settings.announcement, tag: 'announce', url: '/lobby' }
     messageFor = () => msg
   } else if (kind === 'alarm') {
+    only = onCrawl
     ttl = 600 // the in-app alarm only lasts 10 minutes, so a late alarm push is pointless
     messageFor = (id) => {
       const next = nextFor(id)
@@ -120,10 +125,7 @@ Deno.serve(async (req) => {
     messageFor = () => msg
     // Anyone already checked in further along doesn't need telling to leave
     const ahead = new Set(Object.entries(last).filter(([, n]) => n > pub.n).map(([id]) => id))
-    if (ahead.size) {
-      const { data: everyone } = await db.from('players').select('id')
-      only = ((everyone ?? []) as { id: string }[]).map((p) => p.id).filter((id) => !ahead.has(id))
-    }
+    only = onCrawl.filter((id) => !ahead.has(id))
   }
 
   let q = db.from('push_subscriptions').select('endpoint,player_id,p256dh,auth')

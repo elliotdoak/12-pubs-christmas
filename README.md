@@ -52,6 +52,7 @@ To test on a phone on the same Wi-Fi: `npm run dev -- --host`, then open the net
 - **Distance chip:** how far the next pub is from the one you're at.
 - **Handcuffs and blindfolds** (Blackfriars and O'Neills) show who you're cuffed to, with their name and sprite.
 - **Sleepy Jail:** tap the jail to see who's inside and since when.
+- **Hospital:** players who can't make it (Div, on dad duty) stand in the hospital doorway. Tap it for why. Players marked `away` in `src/data/crawl.ts` (and in the `players` table) can still join and follow along, but they're left out of the leaderboard, check-ins, the GM's lists, the Hall of Fame, and the alarm and leave-reminder pushes.
 
 ### Scores
 - **Live leaderboard** with a tap-to-expand breakdown for each player, and a "How scoring works" panel.

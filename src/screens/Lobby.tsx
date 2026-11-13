@@ -11,7 +11,7 @@ import { useGameCtx } from '../lib/game'
 import { load, save } from '../lib/storage'
 import { dropPush, syncPush } from '../lib/push'
 import { isStandalone, locationState, notificationState, type PermState } from '../lib/platform'
-import { COSTUMES, PLAYERS } from '../data/crawl'
+import { COSTUMES, CREW, PLAYERS, isAway } from '../data/crawl'
 
 export default function Lobby() {
   const nav = useNavigate()
@@ -34,7 +34,7 @@ export default function Lobby() {
     syncPush().then(setPush)
   }, [])
 
-  const joined = players?.filter((p) => p.has_pin).length ?? 0
+  const joined = players?.filter((p) => p.has_pin && !isAway(p.id)).length ?? 0
   const notif = notificationState()
   const checks = [
     isStandalone() ? 'Installed' : 'In browser',
@@ -52,9 +52,10 @@ export default function Lobby() {
     nav('/who', { replace: true })
   }
 
-  // Sort: me first, then joined players, then everyone else
+  // Sort: me first, then joined players, then everyone else, then anyone who can't make it
   const rows = [...(players ?? [])].sort((a, b) =>
-    a.id === playerId ? -1 : b.id === playerId ? 1 : Number(b.has_pin) - Number(a.has_pin) || a.name.localeCompare(b.name),
+    a.id === playerId ? -1 : b.id === playerId ? 1
+      : Number(isAway(a.id)) - Number(isAway(b.id)) || Number(b.has_pin) - Number(a.has_pin) || a.name.localeCompare(b.name),
   )
 
   return (
@@ -63,7 +64,7 @@ export default function Lobby() {
       <div className="flex flex-col items-center gap-3 px-5 pb-4 pt-5">
         <Brand presents />
         <Title />
-        <div className="text-[16px] font-medium text-blush">10th anniversary · {PLAYERS.length} players · 0 dignity</div>
+        <div className="text-[16px] font-medium text-blush">10th anniversary · {CREW.length} players · 0 dignity</div>
       </div>
 
       <div className="flex flex-col gap-3 px-5 pb-4">
@@ -103,7 +104,7 @@ export default function Lobby() {
         >
           <b className="font-pix text-[12px] font-normal text-yolk">PLAYERS</b>
           <span className="flex items-center gap-3 font-pix text-[9px] text-white">
-            {joined}/{PLAYERS.length} JOINED
+            {joined}/{CREW.length} JOINED
             <span aria-hidden="true" className="text-yolk">{showPlayers ? '▲' : '▼'}</span>
           </span>
         </button>
@@ -118,7 +119,11 @@ export default function Lobby() {
                 </b>
                 <span className="text-[14px] leading-[18px] text-muted">{COSTUMES[p.costume].name}</span>
               </div>
-              <span className={`tag ${p.has_pin ? 'bg-pine text-white' : 'bg-white text-ink'}`}>{p.has_pin ? 'READY' : 'NOT YET'}</span>
+              {isAway(p.id) ? (
+                <span className="tag bg-white text-red">IN HOSPITAL</span>
+              ) : (
+                <span className={`tag ${p.has_pin ? 'bg-pine text-white' : 'bg-white text-ink'}`}>{p.has_pin ? 'READY' : 'NOT YET'}</span>
+              )}
             </li>
           ))}
         </ul>

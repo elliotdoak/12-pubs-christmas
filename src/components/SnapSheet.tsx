@@ -4,7 +4,7 @@ import { Avatar } from './ui'
 import { useGameCtx } from '../lib/game'
 import { useSession } from '../lib/session'
 import { PHOTO_LIMIT, UPLOAD_MESSAGES, uploadPhoto } from '../lib/photos'
-import { PLAYERS, PUBS, type PlayerId } from '../data/crawl'
+import { CREW, PUBS, type PlayerId } from '../data/crawl'
 
 /** Caption, pub and who's-in-it for a photo the player just picked, then upload. */
 export function SnapSheet({ file, defaultPub, onClose }: { file: File; defaultPub?: number | null; onClose: () => void }) {
@@ -92,7 +92,7 @@ export function SnapSheet({ file, defaultPub, onClose }: { file: File; defaultPu
         <div className="flex flex-col gap-1">
           <span className="font-pix text-[9px]">WHO'S IN IT?</span>
           <div className="grid grid-cols-5 gap-1" role="group" aria-label="Tag players">
-            {PLAYERS.map((p) => {
+            {CREW.map((p) => {
               const on = tagged.has(p.id)
               return (
                 <button

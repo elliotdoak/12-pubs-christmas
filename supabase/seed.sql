@@ -1,17 +1,18 @@
 -- Reference data for the crawl. Times are GMT (UTC+0) on Saturday 28 November 2026.
 -- [TK] Fill in lat/lng for every pub before game day; geofenced check-in depends on them.
 
-insert into public.players (id, name, costume, pair_group) values
-  ('KY', 'Kyle',   'ecto',       4),
-  ('RE', 'Reece',  'tree',       4),
-  ('ST', 'Steve',  'stocking',   3),
-  ('DE', 'Dean',   'schememaw',  1),
-  ('HA', 'Hammy',  'snowman',    2),
-  ('GR', 'Gregor', 'boy',        1),
-  ('EL', 'Elz',    'goth',       3),
-  ('GT', 'Grant',  'mistletoe',  null),
-  ('CA', 'Cal',    'chocorange', null),
-  ('HI', 'Hicksy', 'pilot',      1);
+insert into public.players (id, name, costume, pair_group, away) values
+  ('KY', 'Kyle',   'ecto',       4, null),
+  ('RE', 'Reece',  'tree',       4, null),
+  ('ST', 'Steve',  'stocking',   3, null),
+  ('DE', 'Dean',   'schememaw',  1, null),
+  ('HA', 'Hammy',  'snowman',    2, null),
+  ('GR', 'Gregor', 'boy',        1, null),
+  ('EL', 'Elz',    'goth',       3, null),
+  ('GT', 'Grant',  'mistletoe',  null, null),
+  ('CA', 'Cal',    'chocorange', null, null),
+  ('HI', 'Hicksy', 'pilot',      1, null),
+  ('DV', 'Div',    'mystery',    null, 'hospital');  -- can't make it: at the hospital, new dad
 
 insert into public.pubs (n, name, arrive_at, leave_at, challenge, forfeit) values
   (1,  'Old College Bar', '2026-11-28 12:30+00', '2026-11-28 12:40+00', 'Last to down a can of beer loses', null),

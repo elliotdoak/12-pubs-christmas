@@ -3,13 +3,13 @@ import { Sheet } from './Sheet'
 import { Avatar } from './ui'
 import { useGameCtx } from '../lib/game'
 import { useSession } from '../lib/session'
-import { PAIRS, PLAYERS, type Pub, type PlayerId } from '../data/crawl'
+import { CREW, PAIRS, type Pub, type PlayerId } from '../data/crawl'
 
 /** Shown right after this phone checks you in: tick anyone with you who hasn't been checked in yet. */
 export function CrewSheet({ pub }: { pub: Pub }) {
   const { playerId } = useSession()
   const { game, dismissCheckin, checkInCrew } = useGameCtx()
-  const others = PLAYERS.filter((p) => p.id !== playerId && !game.visited[p.id].has(pub.n))
+  const others = CREW.filter((p) => p.id !== playerId && !game.visited[p.id].has(pub.n))
   // Handcuff partners are definitely with you at Blackfriars and O'Neills
   const cuffed = pub.n === 3 || pub.n === 4 ? PAIRS.find((g) => playerId && g.includes(playerId)) ?? [] : []
   const [sel, setSel] = useState<Set<PlayerId>>(() => new Set(cuffed.filter((id) => id !== playerId && others.some((o) => o.id === id))))

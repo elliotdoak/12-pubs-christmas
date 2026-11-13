@@ -13,7 +13,7 @@ export const EVENT = {
 
 export type CostumeKey =
   | 'ecto' | 'tree' | 'stocking' | 'schememaw' | 'snowman' | 'boy'
-  | 'goth' | 'mistletoe' | 'chocorange' | 'pilot'
+  | 'goth' | 'mistletoe' | 'chocorange' | 'pilot' | 'mystery'
 
 export interface Costume {
   key: CostumeKey
@@ -37,14 +37,17 @@ export const COSTUMES: Record<CostumeKey, Costume> = {
   mistletoe: { key: 'mistletoe', name: 'Mistletoe and Wine', year: 2023, confirmed: false }, // [TK] confirm Grant
   chocorange: { key: 'chocorange', name: "Terry's Chocolate Orange", year: 2024, confirmed: true, photo: '/costumes/chocorange.jpg' },
   pilot: { key: 'pilot', name: 'Flight Club', year: 2025, confirmed: true, photo: '/costumes/pilot.jpg' },
+  mystery: { key: 'mystery', name: 'No costume this year', year: null, confirmed: false },
 }
 
-export type PlayerId = 'KY' | 'RE' | 'ST' | 'DE' | 'HA' | 'GR' | 'EL' | 'GT' | 'CA' | 'HI'
+export type PlayerId = 'KY' | 'RE' | 'ST' | 'DE' | 'HA' | 'GR' | 'EL' | 'GT' | 'CA' | 'HI' | 'DV'
 
 export interface Player {
   id: PlayerId
   name: string
   costume: CostumeKey
+  /** Can't make the crawl: shown in the hospital on the map, left out of scoring, check-ins and the GM's lists */
+  away?: { place: 'hospital'; note: string }
 }
 
 export const PLAYERS: Player[] = [
@@ -58,7 +61,14 @@ export const PLAYERS: Player[] = [
   { id: 'GT', name: 'Grant', costume: 'mistletoe' },
   { id: 'CA', name: 'Cal', costume: 'chocorange' },
   { id: 'HI', name: 'Hicksy', costume: 'pilot' },
+  { id: 'DV', name: 'Div', costume: 'mystery', away: { place: 'hospital', note: 'On dad duty, waiting for the newest member of the crew to arrive.' } },
 ]
+
+/** Everyone actually on the crawl. Use this for scoring, check-ins and counts; PLAYERS for name lookups. */
+export const CREW = PLAYERS.filter((p) => !p.away)
+/** Players who can't make it (Div, in the hospital). */
+export const AWAY = PLAYERS.filter((p) => p.away)
+export const isAway = (id: PlayerId) => AWAY.some((p) => p.id === id)
 
 /** Handcuff groups for Blackfriars and O'Neills. */
 export const PAIRS: PlayerId[][] = [
@@ -134,8 +144,21 @@ export const sprite = {
   pub: (n: number) => `/sprites/pubs/${String(n).padStart(2, '0')}.svg`,
 }
 
-/** Sleepy Jail on the pixel map (left, top, width). */
-export const JAIL = { left: 143, top: 534, width: 104 }
+/*
+ * The bottom row of the pixel map, below the pubs with a gap: hospital, Christmas tree, Sleepy Jail,
+ * evenly spaced (35px either side and between). Tops sit low enough that a full crew at Supercube or
+ * The Raven never overlaps them.
+ */
+/** Where players who can't make it are shown (left, top, width). */
+export const HOSPITAL = { left: 35, top: 590, width: 104 }
+export const TREE = { left: 174, top: 600, width: 42, height: 48 }
+/** Sleepy Jail (left, top, width). */
+export const JAIL = { left: 251, top: 590, width: 104 }
+/** Who's with Div in the ward window, after his own avatar. Not players, just family. */
+export const HOSPITAL_FAMILY = [
+  { src: '/sprites/hospital/wife.svg', label: 'Joanna', w: 16, h: 16 },
+  { src: '/sprites/hospital/baby.svg', label: 'Baby Doyle', w: 12, h: 11 },
+]
 
 const DAY = '2026-11-28'
 

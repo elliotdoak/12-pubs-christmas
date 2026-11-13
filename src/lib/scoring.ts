@@ -1,4 +1,4 @@
-import { PLAYERS, SCORING, pubByN, type PlayerId } from '../data/crawl'
+import { CREW, PLAYERS, SCORING, pubByN, type PlayerId } from '../data/crawl'
 import type { GameState } from '../hooks/useGame'
 
 export interface ScoreItem {
@@ -29,7 +29,7 @@ export function computeScores(game: GameState): Score[] {
   const photoPubs: Partial<Record<PlayerId, Set<number>>> = {}
   for (const ph of game.photos) (photoPubs[ph.player_id] ??= new Set()).add(ph.pub_n ?? 0)
 
-  const scores = PLAYERS.map((p): Score => {
+  const scores = CREW.map((p): Score => {
     const items: ScoreItem[] = []
     const pubs = game.visited[p.id].size
     if (pubs) items.push({ label: `${pubs} pub${pubs === 1 ? '' : 's'} reached`, points: pubs * SCORING.reachPub })

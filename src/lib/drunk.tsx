@@ -57,7 +57,7 @@ export function DrunkProvider({ children }: { children: ReactNode }) {
     <Ctx.Provider value={{ level, cycle }}>
       {/* Outer box takes the filter (and so anchors fixed children to the screen); inner box scrolls */}
       <div className={level ? `drunk d${level} fixed inset-0 overflow-hidden` : ''}>
-        <div className={level ? 'h-full overflow-y-auto overscroll-none' : ''}>{children}</div>
+        <div id="scroll-root" className={level ? 'h-full overflow-y-auto overscroll-none' : ''}>{children}</div>
         {/* Sheets and the tab bar portal here: outside the scroller, but still inside the drunk filter */}
         <div id="overlay-root" />
       </div>

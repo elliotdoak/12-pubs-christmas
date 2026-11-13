@@ -12,7 +12,7 @@ import { useSession } from '../lib/session'
 import { load, save } from '../lib/storage'
 import { supabase } from '../lib/supabase'
 import { thumbPath } from '../lib/photos'
-import { PLAYERS, PUBS, SCORING, at, clockTime, gameNow, niceTime, pubByN, setGameClock, startsAt, type PlayerId } from '../data/crawl'
+import { CREW, PLAYERS, PUBS, SCORING, at, clockTime, gameNow, niceTime, pubByN, setGameClock, startsAt, type PlayerId } from '../data/crawl'
 
 export default function Gm() {
   const { isGm } = useSession()
@@ -108,11 +108,11 @@ function ControlRoom() {
     setTimeout(() => setToast(null), 2200)
   }, [])
 
-  const joined = players?.filter((p) => p.has_pin).length ?? 0
-  const out = PLAYERS.filter((p) => game.lastPub[p.id] > 0 && !game.inJail.has(p.id)).length
+  const joined = players?.filter((p) => p.has_pin && CREW.some((c) => c.id === p.id)).length ?? 0
+  const out = CREW.filter((p) => game.lastPub[p.id] > 0 && !game.inJail.has(p.id)).length
   const crowdPub = useMemo(() => {
     const counts = new Map<number, number>()
-    for (const p of PLAYERS) {
+    for (const p of CREW) {
       const n = game.lastPub[p.id]
       if (n && !game.inJail.has(p.id)) counts.set(n, (counts.get(n) ?? 0) + 1)
     }
@@ -137,7 +137,7 @@ function ControlRoom() {
       </div>
 
       <div className="mx-[14px] mb-3 grid grid-cols-2 gap-2">
-        <Stat k="JOINED" v={`${joined}/${PLAYERS.length}`} />
+        <Stat k="JOINED" v={`${joined}/${CREW.length}`} />
         <Stat k="ACTIVE" v={`${out}`} />
         <Stat k="SLEEPY JAIL" v={`${game.inJail.size}`} hot={game.inJail.size > 0} />
         <Stat k="CROWD AT" v={crowdPub ? `PUB ${crowdPub}` : 'PRE-GAME'} />
@@ -306,7 +306,7 @@ function ResultsTab({ start, flash }: { start: number; flash: (m: string) => voi
 
   const markAll = async (outcome: 'pass') => {
     if (!supabase) return
-    const ids = PLAYERS.filter((p) => game.visited[p.id].has(n) && !game.result(p.id, n)).map((p) => p.id)
+    const ids = CREW.filter((p) => game.visited[p.id].has(n) && !game.result(p.id, n)).map((p) => p.id)
     if (!ids.length) return flash('NOBODY LEFT TO MARK')
     const { error } = await supabase.from('results').upsert(ids.map((id) => ({ player_id: id, pub_n: n, outcome, set_at: new Date().toISOString() })), { onConflict: 'player_id,pub_n' })
     await game.reload()
@@ -328,8 +328,8 @@ function ResultsTab({ start, flash }: { start: number; flash: (m: string) => voi
     flash(current?.reason === reason ? `${name(id).toUpperCase()}: CLEARED` : `${name(id).toUpperCase()} ${kind.toUpperCase()} DRESSED`)
   }
 
-  const reached = PLAYERS.filter((p) => game.visited[p.id].has(n))
-  const notYet = PLAYERS.filter((p) => !game.visited[p.id].has(n))
+  const reached = CREW.filter((p) => game.visited[p.id].has(n))
+  const notYet = CREW.filter((p) => !game.visited[p.id].has(n))
   const status = (id: PlayerId, here: boolean) => {
     if (!here) return 'Not here yet'
     if (pub.judging === 'none') return 'Reached'
@@ -447,7 +447,7 @@ function BonusPanel({ n, flash }: { n: number; flash: (m: string) => void }) {
         <label htmlFor="bonuswho" className="sr-only">Player</label>
         <select id="bonuswho" value={who} onChange={(e) => setWho(e.target.value as PlayerId)} className="border-2 border-ink bg-white p-2 text-[16px]">
           <option value="">Pick a player…</option>
-          {PLAYERS.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+          {CREW.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
         </select>
         <label htmlFor="bonuswhy" className="sr-only">Reason</label>
         <input
@@ -564,7 +564,7 @@ function PlayersTab({ flash }: { flash: (m: string) => void }) {
   // Suggest the next pub for a bulk check-in: one past the furthest selected player
   const suggested = Math.min(12, Math.max(1, ...[...sel].map((id) => game.lastPub[id] + 1)))
   const target = bulkPub ?? suggested
-  const allSel = sel.size === PLAYERS.length
+  const allSel = sel.size === CREW.length
 
   return (
     <>
@@ -574,14 +574,14 @@ function PlayersTab({ flash }: { flash: (m: string) => void }) {
             type="checkbox"
             checked={allSel}
             ref={(el) => { if (el) el.indeterminate = sel.size > 0 && !allSel }}
-            onChange={() => setSel(allSel ? new Set() : new Set(PLAYERS.map((p) => p.id)))}
+            onChange={() => setSel(allSel ? new Set() : new Set(CREW.map((p) => p.id)))}
             className="h-5 w-5 shrink-0 accent-[var(--color-pine)]"
           />
           <span className="font-pix text-[10px]">SELECT ALL</span>
-          <span className="ml-auto text-[13px] text-muted">{sel.size}/{PLAYERS.length} ticked</span>
+          <span className="ml-auto text-[13px] text-muted">{sel.size}/{CREW.length} ticked</span>
         </label>
         <ul className="m-0 list-none p-0">
-          {PLAYERS.map((p) => {
+          {CREW.map((p) => {
             const n = game.lastPub[p.id]
             const jailed = game.inJail.has(p.id)
             const row = players?.find((r) => r.id === p.id)

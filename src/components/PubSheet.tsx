@@ -6,7 +6,7 @@ import { PHOTO_LIMIT, useSignedUrls } from '../lib/photos'
 import type { PhotoRow } from '../hooks/useGame'
 import { useGameCtx } from '../lib/game'
 import { useSession } from '../lib/session'
-import { BLINDFOLD_RULES, PAIRS, PLAYERS, SCORING, niceTime, pubByN, sprite } from '../data/crawl'
+import { BLINDFOLD_RULES, CREW, PAIRS, PLAYERS, SCORING, niceTime, pubByN, sprite } from '../data/crawl'
 
 export function PubSheet({ n, onClose }: { n: number; onClose: () => void }) {
   const { playerId } = useSession()
@@ -19,7 +19,7 @@ export function PubSheet({ n, onClose }: { n: number; onClose: () => void }) {
   const upNext = !unlocked && !!playerId && n === (game.lastPub[playerId] ?? 0) + 1
   const open = unlocked || upNext
   const verdict = playerId ? game.result(playerId, n) : undefined
-  const reached = PLAYERS.filter((p) => game.visited[p.id].has(n))
+  const reached = CREW.filter((p) => game.visited[p.id].has(n))
   const cuffs = n === 3 || n === 4
   const myGroup = playerId ? PAIRS.find((g) => g.includes(playerId)) : undefined
 
@@ -49,7 +49,7 @@ export function PubSheet({ n, onClose }: { n: number; onClose: () => void }) {
       <p className="mx-4 my-2 text-[14px] leading-[18px] text-muted">{pub.address}</p>
 
       <div className="mx-4 flex items-center gap-2 border-[3px] border-dashed border-ink px-2 py-2">
-        <span className="shrink-0 font-pix text-[8px]">UNLOCKED BY {reached.length}/{PLAYERS.length}</span>
+        <span className="shrink-0 font-pix text-[8px]">UNLOCKED BY {reached.length}/{CREW.length}</span>
         <div className="flex flex-wrap gap-[2px]">
           {reached.map((p) => <Avatar key={p.id} id={p.id} size={22} />)}
         </div>
