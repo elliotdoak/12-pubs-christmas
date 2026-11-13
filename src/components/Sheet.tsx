@@ -11,7 +11,19 @@ export function ScrollLock() {
 /** Bottom sheet with a scrim, focus on open and Escape to close. The page behind can't scroll. */
 export function Sheet({ label, onClose, children }: { label: string; onClose?: () => void; children: ReactNode }) {
   const ref = useRef<HTMLDivElement>(null)
+  const scrim = useRef<HTMLDivElement>(null)
   useScrollLock()
+  // Drags on the dark backdrop must not reach the page. React's touch handlers are passive and can't
+  // cancel a swipe, so this one is attached by hand. Swipes inside the sheet still scroll the sheet.
+  useEffect(() => {
+    const el = scrim.current
+    if (!el) return
+    const block = (e: TouchEvent) => {
+      if (!ref.current?.contains(e.target as Node)) e.preventDefault()
+    }
+    el.addEventListener('touchmove', block, { passive: false })
+    return () => el.removeEventListener('touchmove', block)
+  }, [])
   useEffect(() => {
     ref.current?.focus()
     if (!onClose) return
@@ -21,7 +33,7 @@ export function Sheet({ label, onClose, children }: { label: string; onClose?: (
   }, [onClose])
 
   return createPortal(
-    <div className="fixed inset-0 z-30 flex items-end justify-center bg-ink/70" onClick={onClose}>
+    <div ref={scrim} className="fixed inset-0 z-30 flex items-end justify-center bg-ink/70" onClick={onClose}>
       <div
         ref={ref}
         tabIndex={-1}

@@ -1,10 +1,14 @@
+import { useState } from 'react'
 import { Sheet, SheetClose } from './Sheet'
+import { BabyDash } from './BabyDash'
 import { Avatar } from './ui'
 import { AWAY, HOSPITAL_FAMILY } from '../data/crawl'
 
 /** Who's in the hospital on the map: crew who can't make it this year, and why. */
 export function HospitalSheet({ onClose }: { onClose: () => void }) {
+  const [playing, setPlaying] = useState(false)
   return (
+    <>
     <Sheet label="Hospital" onClose={onClose}>
       <div className="flex items-start gap-3 p-4 pb-3">
         <img src="/sprites/map/hospital.svg" alt="" width={52} height={30} className="pixel mt-1 shrink-0" />
@@ -57,6 +61,11 @@ export function HospitalSheet({ onClose }: { onClose: () => void }) {
       <p className="m-0 mx-4 mt-3 text-[15px] leading-[19px] text-muted">
         Not on the crawl, so not on the leaderboard. Raise a glass and send him a photo.
       </p>
+      <div className="mx-4 mt-3 flex justify-center">
+        <button type="button" className="btn-big" onClick={() => setPlaying(true)}>PLAY BABY DASH ▶</button>
+      </div>
     </Sheet>
+    {playing && <BabyDash onClose={() => setPlaying(false)} />}
+    </>
   )
 }
