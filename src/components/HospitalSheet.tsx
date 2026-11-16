@@ -48,7 +48,7 @@ export function HospitalSheet({ onClose }: { onClose: () => void }) {
       <figure className="mx-4 mt-3 mb-0 flex flex-col items-center gap-2 border-[3px] border-dashed border-ink px-3 py-3">
         <img
           src="/sprites/hospital/labour.svg"
-          alt="Joanna in labour in a hospital bed, a doctor at the foot of the bed, and David belting out karaoke into a microphone under a karaoke screen"
+          alt="Joanna in labour in a hospital bed gripping the rail, a doctor side-eyeing David, and David belting out karaoke into a microphone under a karaoke screen, with a speaker at his feet"
           width={288}
           height={160}
           className="h-auto w-full max-w-[288px]"

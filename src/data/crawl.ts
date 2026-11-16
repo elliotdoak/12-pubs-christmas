@@ -40,7 +40,7 @@ export const COSTUMES: Record<CostumeKey, Costume> = {
   mystery: { key: 'mystery', name: 'No costume this year', year: null, confirmed: false },
 }
 
-export type PlayerId = 'KY' | 'RE' | 'ST' | 'DE' | 'HA' | 'GR' | 'EL' | 'GT' | 'CA' | 'HI' | 'DV'
+export type PlayerId = 'RE' | 'ST' | 'DE' | 'HA' | 'GR' | 'EL' | 'GT' | 'CA' | 'HI' | 'DV'
 
 export interface Player {
   id: PlayerId
@@ -51,7 +51,6 @@ export interface Player {
 }
 
 export const PLAYERS: Player[] = [
-  { id: 'KY', name: 'Kyle', costume: 'ecto' },
   { id: 'RE', name: 'Reece', costume: 'tree' },
   { id: 'ST', name: 'Steve', costume: 'stocking' },
   { id: 'DE', name: 'Dean', costume: 'schememaw' },
@@ -73,9 +72,8 @@ export const isAway = (id: PlayerId) => AWAY.some((p) => p.id === id)
 /** Handcuff groups for Blackfriars and O'Neills. */
 export const PAIRS: PlayerId[][] = [
   ['GR', 'HI', 'DE'],
-  ['HA'], // [TK] Div dropped out: who does Hammy pair with?
+  ['HA', 'RE'], // Div and Kyle both dropped out, so their partners pair up
   ['EL', 'ST'],
-  ['KY', 'RE'],
 ]
 
 export const BLINDFOLD_RULES = [
@@ -135,7 +133,14 @@ export const SCORING = {
   bestDressed: 25,
   worstDressed: -25,
   sleepyJail: -40,
-  photo: 5,
+  /** Per pub: 1st photo, 2nd, 3rd (the most anyone can post there) */
+  photo: [5, 2, 1],
+} as const
+
+/** Press Bar's costume verdicts, stored as GM bonuses with exactly these reasons. */
+export const DRESSED = {
+  best: ['Best dressed at Press Bar', SCORING.bestDressed],
+  worst: ['Worst dressed at Press Bar', SCORING.worstDressed],
 } as const
 
 export const sprite = {

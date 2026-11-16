@@ -85,7 +85,7 @@ export function SnapSheet({ file, defaultPub, onClose }: { file: File; defaultPu
             ))}
           </select>
           <span className={`text-[13px] leading-[17px] ${full(pub) ? 'text-red' : 'text-muted'}`}>
-            {full(pub) ? `You've posted ${PHOTO_LIMIT} here already. Pick another stop, or delete one first.` : `Up to ${PHOTO_LIMIT} photos per pub. You can post to pubs you've reached.`}
+            {full(pub) ? `You've posted ${PHOTO_LIMIT} here already. Pick another stop, or delete one first.` : `Up to ${PHOTO_LIMIT} photos per pub. Spam shots (the floor, your thumb) just for points lose you points.`}
           </span>
         </label>
 

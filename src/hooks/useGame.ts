@@ -10,7 +10,7 @@ export interface CheckinRow {
   by_player: PlayerId | null
 }
 export interface ResultRow { player_id: PlayerId; pub_n: number; outcome: 'pass' | 'fail'; set_at: string }
-export interface Settings { announcement: string | null; announced_at: string | null; reset_at?: string | null; alarm_at?: string | null }
+export interface Settings { announcement: string | null; announced_at: string | null; reset_at?: string | null; alarm_at?: string | null; ended_at?: string | null }
 export interface BonusRow { id: number; player_id: PlayerId; points: number; reason: string; created_at: string }
 export interface PhotoRow { id: string; player_id: PlayerId; pub_n: number | null; path: string; caption: string | null; tagged: PlayerId[]; created_at: string }
 export interface JailRow { player_id: PlayerId; last_pub: number | null; since: string; released_at: string | null }
@@ -85,20 +85,29 @@ export function useGame(enabled = true): GameState {
     }
   }, [reload, enabled])
 
-  return useMemo(() => {
-    const visited = Object.fromEntries(PLAYERS.map((p) => [p.id, new Set<number>()])) as Record<PlayerId, Set<number>>
-    for (const c of checkins) visited[c.player_id]?.add(c.pub_n)
-    const lastPub = Object.fromEntries(PLAYERS.map((p) => [p.id, Math.max(0, ...visited[p.id])])) as Record<PlayerId, number>
-    // Checking in anywhere after being jailed counts as escaping: no server round trip needed
-    const lastAt: Record<string, string> = {}
-    for (const c of checkins) if (!lastAt[c.player_id] || c.at > lastAt[c.player_id]) lastAt[c.player_id] = c.at
-    const inJail = new Set(
-      jail.filter((j) => !j.released_at && !(lastAt[j.player_id] && lastAt[j.player_id] > j.since)).map((j) => j.player_id),
-    )
-    const resMap = new Map(results.map((r) => [`${r.player_id}:${r.pub_n}`, r.outcome]))
-    return {
-      loaded, checkins, results, jail, bonuses, photos, settings, lastPub, visited, inJail, reload,
-      result: (p: PlayerId, n: number) => resMap.get(`${p}:${n}`),
-    }
-  }, [loaded, checkins, results, jail, bonuses, photos, settings, reload])
+  return useMemo(
+    () => deriveGame({ checkins, results, jail, bonuses, photos, settings }, loaded, reload),
+    [loaded, checkins, results, jail, bonuses, photos, settings, reload],
+  )
+}
+
+export type GameRows = Pick<GameState, 'checkins' | 'results' | 'jail' | 'bonuses' | 'photos' | 'settings'>
+
+/** Work out who's been where and who's in jail from the raw rows. Also used for the awards preview's sample data. */
+export function deriveGame(rows: GameRows, loaded = true, reload: () => Promise<void> = async () => {}): GameState {
+  const { checkins, results, jail, bonuses, photos, settings } = rows
+  const visited = Object.fromEntries(PLAYERS.map((p) => [p.id, new Set<number>()])) as Record<PlayerId, Set<number>>
+  for (const c of checkins) visited[c.player_id]?.add(c.pub_n)
+  const lastPub = Object.fromEntries(PLAYERS.map((p) => [p.id, Math.max(0, ...visited[p.id])])) as Record<PlayerId, number>
+  // Checking in anywhere after being jailed counts as escaping: no server round trip needed
+  const lastAt: Record<string, string> = {}
+  for (const c of checkins) if (!lastAt[c.player_id] || c.at > lastAt[c.player_id]) lastAt[c.player_id] = c.at
+  const inJail = new Set(
+    jail.filter((j) => !j.released_at && !(lastAt[j.player_id] && lastAt[j.player_id] > j.since)).map((j) => j.player_id),
+  )
+  const resMap = new Map(results.map((r) => [`${r.player_id}:${r.pub_n}`, r.outcome]))
+  return {
+    loaded, checkins, results, jail, bonuses, photos, settings, lastPub, visited, inJail, reload,
+    result: (p: PlayerId, n: number) => resMap.get(`${p}:${n}`),
+  }
 }

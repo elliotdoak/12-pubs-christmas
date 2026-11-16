@@ -56,6 +56,9 @@ To test on a phone on the same Wi-Fi: `npm run dev -- --host`, then open the net
 
 ### Scores
 - **Live leaderboard** with a tap-to-expand breakdown for each player, and a "How scoring works" panel.
+- **End-of-night awards.** When the GM ends the crawl, every phone gets a full-screen ceremony once: the champion, 2nd and 3rd, then the awards face down to tap through. After that the app opens on Scores, with the awards above the final leaderboard and a button to watch the ceremony again.
+  - Awards: Fastest Feet (first in at the most pubs), Paparazzi (most photos), Most Wanted (most tagged), Challenge Champ, Bottle Job (most failed), Jailbird (first to Sleepy Jail), The Ghost (in the fewest photos), Last One Standing (last into the furthest pub), Best Dressed (the Press Bar pick) and Absent Friend (Div).
+  - All worked out from what the app recorded (`src/lib/awards.ts`). Ties share an award. An award with nothing to go on is left out.
 
 ### Photos
 - **Photo wall.** Up to 3 photos per person per pub. Pub photos also show on that pub's sheet.
@@ -77,7 +80,7 @@ Scores are worked out live from the game data, so changing a value in `SCORING` 
 | Challenge failed | −15 |
 | Best dressed at Press Bar | +25 (one player) |
 | Worst dressed at Press Bar | −25 (one player) |
-| Posting a photo at a pub | +5 (once per pub, plus once before the crawl) |
+| Photos at a pub (and before the crawl) | +5 for the 1st, +2 the 2nd, +1 the 3rd. Spam shots get docked by the Game Master |
 | Sent to Sleepy Jail | −40 (once, however many times you're jailed) |
 | Game Master bonus | whatever the GM gives |
 
@@ -92,18 +95,23 @@ Log in on the **GM** tab with the Game Master PIN. The page remembers which tab 
 
 | Tab | What it does |
 |---|---|
-| **Live** | **Leave alarm:** a full-screen siren, flash and buzz on every open phone, "Drink up, we're leaving now", with each player's next pub, plus a push notification to locked phones. Runs for 10 minutes or until stopped. **Announce:** a banner on every phone, plus a push notification. |
+| **Live** | **Leave alarm:** a full-screen siren, flash and buzz on every open phone, "Drink up, we're leaving now", with each player's next pub, plus a push notification to locked phones. Runs for 10 minutes or until stopped. **Announce:** a banner on every phone, plus a push notification. **End the crawl:** sends everyone to the awards, with a push. Undo puts the game back. |
 | **Results** | Pick a pub, then mark each player PASS or FAIL (or BEST and WORST at Press Bar; nothing at no-verdict pubs). Tap a highlighted button again to clear it. **Bonus points** for anything else, with a reason that shows on the leaderboard. |
 | **Players** | Each player's current pub, when their phone was last seen, and whether alerts can reach them. Manual check-in (one player or a ticked group), undo a check-in, **jail and release** (jailing sends them a push), reset a PIN. |
-| **Testing** | **Practice mode** and **Full reset** (see below). |
+| **Testing** | **Practice mode**, **Awards preview** and **Full reset** (see below). |
 
 ### Practice mode
 Runs a game clock on *your phone only*, starting from kick-off, so you can rehearse the day. Jump to kick-off or to any pub's arrival time.
 - With **"Move the map to match"** ticked, a jump also moves the shared check-ins. Anyone past that pub is moved back to it, and you're checked in up to it. **This changes the real game data on every phone.**
 - Automatic leave reminders follow the real clock, not the practice clock.
 
+### Awards preview
+Opens the awards ceremony on *your phone only*, without ending the crawl. **Sample night** uses made-up data so every award shows. **Live data** uses what's been recorded so far.
+
+To test the real thing end to end: tap **End the crawl** on the Live tab, check the push and the ceremony on another phone, then tap **Undo**. Each phone sees the ceremony once per ending, so ending it again shows it again.
+
 ### Full reset
-Clears check-ins, results, Sleepy Jail, bonuses, photos, locations and the announcement. Optionally wipes PINs too, so everyone re-joins.
+Clears check-ins, results, Sleepy Jail, bonuses, photos, locations, the announcement and the end of the crawl. Optionally wipes PINs too, so everyone re-joins.
 
 ## Push notifications
 
@@ -114,6 +122,7 @@ Phones with alerts on get these even when the app is closed or the phone is lock
 | **DRINK UP! WE'RE LEAVING NOW** | GM sounds the leave alarm | Everyone | Map (and the red alarm screen, within 10 minutes) |
 | **GAME MASTER** + the banner text | GM posts an announcement | Everyone | Crew |
 | **YOU'RE IN SLEEPY JAIL** | GM jails a player | That player | Map |
+| **THE AWARDS ARE IN** | GM ends the crawl | Everyone (Div too) | Scores (and the awards ceremony) |
 | **10 MINS LEFT AT [PUB]** | Automatically, from the timetable on 28 November | Everyone not already further along | Crew |
 
 Leave reminders come 10 minutes before each pub's leave time, or 5 minutes for stops of 15 minutes or less. Each pub sends once, and Supercube sends "LAST ORDERS".

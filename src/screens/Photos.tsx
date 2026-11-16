@@ -32,7 +32,7 @@ export default function Photos() {
         <div className="font-pix text-[10px] text-yolk">THE CREW'S CAMERA ROLL</div>
         <h1 className="m-0 font-pix text-[22px] leading-[28px] text-white [text-shadow:3px_3px_0_var(--color-ink)]">PHOTO WALL</h1>
         <p className="m-0 text-[15px] leading-[19px] text-blush">
-          {visible.length} photo{visible.length === 1 ? '' : 's'} · +{SCORING.photo} points for posting at each pub
+          {visible.length} photo{visible.length === 1 ? '' : 's'} · +{SCORING.photo.join(' / +')} points for your 1st / 2nd / 3rd photo at each pub
         </p>
       </header>
 

@@ -1,12 +1,13 @@
-import { useEffect, type ReactNode } from 'react'
-import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom'
+import { useEffect, useState, type ReactNode } from 'react'
+import { BrowserRouter, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { SessionProvider, useSession } from './lib/session'
-import { GameProvider } from './lib/game'
+import { GameProvider, useGameCtx } from './lib/game'
 import { DrunkProvider } from './lib/drunk'
 import { Announcement } from './components/Announcement'
 import { LeaveAlarm } from './components/LeaveAlarm'
+import { AwardsShow } from './components/Awards'
 import { isGameDay } from './data/crawl'
-import { load } from './lib/storage'
+import { load, save } from './lib/storage'
 import { syncPush } from './lib/push'
 import { Logo, Screen } from './components/ui'
 import Install from './screens/Install'
@@ -41,12 +42,37 @@ export default function App() {
         </DrunkProvider>
         <Announcement />
         <LeaveAlarm />
+        <AwardsTakeover />
         <PushSync />
         <StatusBarCover />
       </BrowserRouter>
       </GameProvider>
     </SessionProvider>
   )
+}
+
+/**
+ * When the Game Master ends the crawl, every phone gets the awards ceremony once, full screen.
+ * Not over the GM screen, so whoever ended it isn't thrown out of the control room.
+ * Also remembers the crawl has ended, so the app opens on Scores from then on.
+ */
+function AwardsTakeover() {
+  const { playerId } = useSession()
+  const { game } = useGameCtx()
+  const { pathname } = useLocation()
+  const navigate = useNavigate()
+  const ended = game.settings.ended_at ?? null
+  const [seen, setSeen] = useState(() => load<string | null>('awardsSeen', null))
+  useEffect(() => {
+    if (game.loaded) save('crawlEnded', ended)
+  }, [game.loaded, ended])
+  if (!ended || !playerId || seen === ended || pathname === '/gm') return null
+  const done = () => {
+    save('awardsSeen', ended)
+    setSeen(ended)
+    navigate('/scores')
+  }
+  return <AwardsShow game={game} onClose={done} />
 }
 
 /** Keeps this phone's push subscription saved against the current player: on pick, and every time the app comes back. */
@@ -80,10 +106,14 @@ function StatusBarCover() {
 /** Sends each phone to the right place: install → pick player → lobby. */
 function Gate() {
   const { ready, error, playerId } = useSession()
+  const { game } = useGameCtx()
   if (!ready) return <Splash />
   if (error) return <Splash message={error} />
   if (!load('setupDone', false)) return <Navigate to="/install" replace />
   if (!playerId) return <Navigate to="/who" replace />
+  // Once the crawl's over, open on the final scores and awards
+  const ended = game.loaded ? game.settings.ended_at : load<string | null>('crawlEnded', null)
+  if (ended) return <Navigate to="/scores" replace />
   return <Navigate to={isGameDay() ? '/map' : '/lobby'} replace />
 }
 

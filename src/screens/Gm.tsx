@@ -12,7 +12,9 @@ import { useSession } from '../lib/session'
 import { load, save } from '../lib/storage'
 import { supabase } from '../lib/supabase'
 import { thumbPath } from '../lib/photos'
-import { CREW, PLAYERS, PUBS, SCORING, at, clockTime, gameNow, niceTime, pubByN, setGameClock, startsAt, type PlayerId } from '../data/crawl'
+import { sampleGame } from '../lib/awards'
+import { AwardsShow } from '../components/Awards'
+import { CREW, DRESSED, PLAYERS, PUBS, SCORING, at, clockTime, gameNow, niceTime, pubByN, setGameClock, startsAt, type PlayerId } from '../data/crawl'
 
 export default function Gm() {
   const { isGm } = useSession()
@@ -282,7 +284,55 @@ function LiveTab({ flash }: { flash: (m: string) => void }) {
           <p className="m-0 text-[13px] leading-[17px] text-muted">Shows as a banner in the app, and as a notification on locked phones with alerts on.</p>
         </div>
       </Panel>
+
+      <EndPanel flash={flash} pushed={pushed} />
     </>
+  )
+}
+
+/* ---------------- LIVE: end of the night ---------------- */
+
+function EndPanel({ flash, pushed }: { flash: (m: string) => void; pushed: (r: NotifyResult) => void }) {
+  const { game } = useGameCtx()
+  const [armed, setArmed] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const endedAt = game.settings.ended_at ?? null
+
+  const setEnded = async (on: boolean) => {
+    if (!supabase) return
+    setBusy(true)
+    const { error } = await supabase.from('settings').update({ ended_at: on ? new Date().toISOString() : null, updated_at: new Date().toISOString() }).eq('id', 1)
+    setBusy(false)
+    setArmed(false)
+    if (error) return flash('COULD NOT SAVE')
+    await game.reload()
+    flash(on ? 'CRAWL ENDED · AWARDS ARE OUT' : 'CRAWL BACK ON')
+    if (on) pushed(await notify('awards'))
+  }
+
+  return (
+    <Panel title="END OF THE NIGHT" hint="Awards for everyone">
+      <div className="flex flex-col gap-2 p-3">
+        {endedAt ? (
+          <>
+            <div className="border-2 border-ink bg-yolk p-2 text-center font-pix text-[9px] leading-[13px]">
+              CRAWL ENDED AT {clockTime(new Date(endedAt).getTime()).toUpperCase()}
+            </div>
+            <Btn onClick={() => setEnded(false)} disabled={busy}>UNDO: CRAWL STILL ON</Btn>
+          </>
+        ) : armed ? (
+          <div className="flex gap-2">
+            <button type="button" className="btn-big sm flex-1" disabled={busy} onClick={() => setEnded(true)}>YES, END IT</button>
+            <button type="button" className="btn-big sm !w-auto !bg-white" onClick={() => setArmed(false)}>CANCEL</button>
+          </div>
+        ) : (
+          <button type="button" className="btn-big" onClick={() => setArmed(true)}>END THE CRAWL ▶</button>
+        )}
+        <p className="m-0 text-[13px] leading-[17px] text-muted">
+          Every phone gets the awards ceremony full screen, once, and taps through it at its own pace. Locked phones with alerts on get a notification. The app then opens on the final scores. Undo puts everything back.
+        </p>
+      </div>
+    </Panel>
   )
 }
 
@@ -412,10 +462,6 @@ function ResultsTab({ start, flash }: { start: number; flash: (m: string) => voi
 }
 
 /** Bonus reasons for Press Bar; the leaderboard shows the reason as the line item. */
-const DRESSED = {
-  best: ['Best dressed at Press Bar', SCORING.bestDressed],
-  worst: ['Worst dressed at Press Bar', SCORING.worstDressed],
-} as const
 
 /** Ad-hoc bonus points for anything else worth rewarding. Shown on the leaderboard breakdown. */
 function BonusPanel({ n, flash }: { n: number; flash: (m: string) => void }) {
@@ -729,6 +775,8 @@ function TestingTab({ flash, onExit }: { flash: (m: string) => void; onExit: () 
   const [pins, setPins] = useState(false)
   const [typed, setTyped] = useState('')
   const [busy, setBusy] = useState(false)
+  const [preview, setPreview] = useState<'sample' | 'live' | null>(null)
+  const sample = useMemo(() => sampleGame(), [])
 
   const counts = [
     ['check-ins', game.checkins.length],
@@ -762,6 +810,25 @@ function TestingTab({ flash, onExit }: { flash: (m: string) => void; onExit: () 
         </label>
         {practice && <GameClock flash={flash} />}
       </Panel>
+
+      <Panel title="AWARDS PREVIEW" hint="Only on this phone">
+        <div className="flex flex-col gap-2 p-3">
+          <p className="m-0 text-[15px] leading-[19px]">See the end-of-night ceremony without ending the crawl. Nobody else sees it.</p>
+          <div className="flex flex-wrap gap-2">
+            <Btn tone="yolk" onClick={() => setPreview('sample')}>SAMPLE NIGHT</Btn>
+            <Btn onClick={() => setPreview('live')}>LIVE DATA</Btn>
+          </div>
+          <p className="m-0 text-[13px] leading-[17px] text-muted">Sample night is made up, so every award shows. Live data uses what's been recorded so far, so awards with nothing to go on are left out.</p>
+        </div>
+      </Panel>
+      {preview && (
+        <AwardsShow
+          game={preview === 'sample' ? sample : game}
+          label={preview === 'sample' ? 'PREVIEW · SAMPLE NIGHT' : 'PREVIEW · LIVE DATA'}
+          done="CLOSE PREVIEW"
+          onClose={() => setPreview(null)}
+        />
+      )}
 
       <Panel title="FULL RESET" hint="Can't be undone">
         <div className="flex flex-col gap-3 p-3">

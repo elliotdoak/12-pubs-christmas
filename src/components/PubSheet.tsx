@@ -129,7 +129,7 @@ function PubPhotos({ n }: { n: number }) {
           ))}
         </div>
       ) : (
-        <p className="m-0 text-[14px] leading-[18px] text-muted">No photos here yet. +{SCORING.photo} points for the first one you post.</p>
+        <p className="m-0 text-[14px] leading-[18px] text-muted">No photos here yet. +{SCORING.photo[0]} points for the first one you post.</p>
       )}
       {open && <Lightbox photo={open} onClose={() => setOpen(null)} />}
     </div>

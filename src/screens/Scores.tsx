@@ -1,6 +1,8 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Avatar, Knit, Screen } from '../components/ui'
 import { TabBar } from '../components/TabBar'
+import { AwardsBoard, AwardsShow } from '../components/Awards'
+import { computeAwards } from '../lib/awards'
 import { Countdown } from '../components/Countdown'
 import { useGameCtx } from '../lib/game'
 import { useSession } from '../lib/session'
@@ -10,11 +12,26 @@ import { PLAYERS, SCORING, isGameDay } from '../data/crawl'
 
 const RANK_BG = ['bg-yolk', 'bg-[#D9D9E0]', 'bg-[#E3A36B]']
 
+const RULES: [number, string][] = [
+  [SCORING.reachPub, 'each pub you reach'],
+  [SCORING.challengePassed, 'challenge passed'],
+  [SCORING.challengeFailed, 'challenge failed'],
+  [SCORING.bestDressed, 'best dressed at Press Bar'],
+  [SCORING.worstDressed, 'worst dressed at Press Bar'],
+  [SCORING.photo[0], '1st photo at each pub'],
+  [SCORING.photo[1], '2nd photo at the same pub'],
+  [SCORING.photo[2], '3rd photo at the same pub'],
+  [SCORING.sleepyJail, 'sent to Sleepy Jail'],
+]
+
 export default function Scores() {
   const { playerId } = useSession()
   const { game } = useGameCtx()
   const [open, setOpen] = useState<string | null>(null)
   const intro = useIntro()
+  const ended = !!game.settings.ended_at
+  const awards = useMemo(() => (ended ? computeAwards(game) : null), [ended, game])
+  const [ceremony, setCeremony] = useState(false)
 
   const scores = computeScores(game)
   const started = game.checkins.length > 0
@@ -25,8 +42,8 @@ export default function Scores() {
     <Screen>
       <Knit />
       <header className="flex flex-col gap-2 px-[18px] pb-3 pt-4">
-        <div className="font-pix text-[10px] text-yolk">LIVE LEADERBOARD</div>
-        <h1 className="m-0 font-pix text-[22px] leading-[28px] text-white [text-shadow:3px_3px_0_var(--color-ink)]">HIGH SCORES</h1>
+        <div className="font-pix text-[10px] text-yolk">{ended ? 'THE CRAWL IS OVER' : 'LIVE LEADERBOARD'}</div>
+        <h1 className="m-0 font-pix text-[22px] leading-[28px] text-white [text-shadow:3px_3px_0_var(--color-ink)]">{ended ? 'FINAL SCORES' : 'HIGH SCORES'}</h1>
         {me && (
           <div className="flex justify-between bg-ink px-3 py-2 font-pix text-[10px] text-white">
             <span>1UP · {meName.toUpperCase()}</span>
@@ -34,6 +51,17 @@ export default function Scores() {
           </div>
         )}
       </header>
+
+      {awards && (
+        <section aria-label="The awards" className="mb-6">
+          <AwardsBoard result={awards} ceremony={false} />
+          <div className="mx-[14px] mt-4">
+            <button type="button" className="btn-big sm" onClick={() => setCeremony(true)}>WATCH THE CEREMONY AGAIN ▶</button>
+          </div>
+          <h2 className="m-0 mx-[14px] mt-7 font-pix text-[11px] text-yolk">FULL LEADERBOARD</h2>
+        </section>
+      )}
+      {ceremony && <AwardsShow game={game} label="THE NIGHT IS OVER" done="CLOSE ▶" onClose={() => setCeremony(false)} />}
 
       {!started && !isGameDay() ? (
         <div className="panel mx-[14px] mb-4 flex flex-col items-center gap-3 p-4 text-center">
@@ -82,7 +110,7 @@ export default function Scores() {
                       s.items.map((it, k) => (
                         <li key={k} className="flex justify-between gap-3 py-[3px] text-[15px] leading-[19px]">
                           <span>{it.label}</span>
-                          <b className={it.points < 0 ? 'text-red' : 'text-pine'}>{it.points > 0 ? '+' : ''}{it.points}</b>
+                          <b className={`font-pix text-[11px] font-normal ${it.points < 0 ? 'text-red' : 'text-pine'}`}>{it.points > 0 ? '+' : ''}{it.points}</b>
                         </li>
                       ))
                     ) : (
@@ -98,15 +126,18 @@ export default function Scores() {
 
       <details className="mx-[14px] mb-6 border-4 border-ink bg-ink text-white">
         <summary className="cursor-pointer px-3 py-3 font-pix text-[10px] text-yolk">HOW SCORING WORKS</summary>
-        <ul className="m-0 list-none px-3 pb-3 text-[16px] leading-[24px]">
-          <li><b className="text-yolk">+{SCORING.reachPub}</b> each pub you reach</li>
-          <li><b className="text-yolk">+{SCORING.challengePassed}</b> challenge passed</li>
-          <li><b className="text-yolk">{SCORING.challengeFailed}</b> challenge failed</li>
-          <li><b className="text-yolk">+{SCORING.bestDressed}</b> best dressed at Press Bar</li>
-          <li><b className="text-yolk">{SCORING.worstDressed}</b> worst dressed at Press Bar</li>
-          <li><b className="text-yolk">+{SCORING.photo}</b> posting a photo at each pub</li>
-          <li><b className="text-yolk">{SCORING.sleepyJail}</b> sent to Sleepy Jail</li>
-          <li className="mt-1 text-[14px] leading-[18px] text-[#D8D2C6]">The Game Master can hand out bonus points too. Tap any row for the breakdown.</li>
+        {/* Points in the heading font: the body font's bold 5 looks like a 9 at this size */}
+        <ul className="m-0 flex list-none flex-col gap-[6px] px-3 pb-3 text-[17px] leading-[22px]">
+          {RULES.map(([pts, what]) => (
+            <li key={what} className="flex items-baseline gap-3">
+              <span className="w-[44px] shrink-0 text-right font-pix text-[12px] text-yolk">{pts > 0 ? '+' : ''}{pts}</span>
+              <span>{what}</span>
+            </li>
+          ))}
+          <li className="mt-1 text-[15px] leading-[19px] text-[#D8D2C6]">
+            <b className="text-yolk">No spam photos.</b> Snap the floor or the ceiling just for the points and the Game Master will take points off you.
+          </li>
+          <li className="text-[15px] leading-[19px] text-[#D8D2C6]">The Game Master can hand out bonus points too. Tap a player on the leaderboard to see how they got their points.</li>
         </ul>
       </details>
 

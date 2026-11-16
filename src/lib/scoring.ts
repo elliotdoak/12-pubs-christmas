@@ -22,12 +22,16 @@ export interface Score {
  *   +10 each pub reached, +15 challenge passed, -15 challenge failed,
  *   -40 if ever sent to Sleepy Jail,
  *   plus any Game Master bonuses (best dressed at Press Bar +25, worst dressed -25).
- *   +5 for posting a photo at a pub (once per pub, plus once before the crawl).
+ *   Photos at each pub (and before the crawl): +5 for the 1st, +2 the 2nd, +1 the 3rd.
  */
 export function computeScores(game: GameState): Score[] {
-  // Photo points count once per pub, so spamming the wall doesn't win the night
-  const photoPubs: Partial<Record<PlayerId, Set<number>>> = {}
-  for (const ph of game.photos) (photoPubs[ph.player_id] ??= new Set()).add(ph.pub_n ?? 0)
+  // Photo points shrink with each extra photo at the same pub, so spamming the wall doesn't win the night
+  const photoCounts: Partial<Record<PlayerId, Record<number, number>>> = {}
+  for (const ph of game.photos) {
+    const mine = (photoCounts[ph.player_id] ??= {})
+    const stop = ph.pub_n ?? 0
+    mine[stop] = (mine[stop] ?? 0) + 1
+  }
 
   const scores = CREW.map((p): Score => {
     const items: ScoreItem[] = []
@@ -46,8 +50,10 @@ export function computeScores(game: GameState): Score[] {
 
     for (const b of game.bonuses.filter((b) => b.player_id === p.id)) items.push({ label: b.reason, points: b.points })
 
-    const snaps = photoPubs[p.id]?.size ?? 0
-    if (snaps) items.push({ label: `Photos posted at ${snaps} stop${snaps === 1 ? '' : 's'}`, points: snaps * SCORING.photo })
+    const counts = Object.values(photoCounts[p.id] ?? {})
+    const snaps = counts.reduce((s, c) => s + Math.min(c, SCORING.photo.length), 0)
+    const photoPts = counts.reduce((s, c) => s + SCORING.photo.slice(0, c).reduce((a, b) => a + b, 0), 0)
+    if (snaps) items.push({ label: `${snaps} photo${snaps === 1 ? '' : 's'} at ${counts.length} stop${counts.length === 1 ? '' : 's'}`, points: photoPts })
 
     return {
       id: p.id, pts: items.reduce((s, i) => s + i.points, 0), rank: 0,

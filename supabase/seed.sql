@@ -2,8 +2,7 @@
 -- [TK] Fill in lat/lng for every pub before game day; geofenced check-in depends on them.
 
 insert into public.players (id, name, costume, pair_group, away) values
-  ('KY', 'Kyle',   'ecto',       4, null),
-  ('RE', 'Reece',  'tree',       4, null),
+  ('RE', 'Reece',  'tree',       2, null),
   ('ST', 'Steve',  'stocking',   3, null),
   ('DE', 'Dean',   'schememaw',  1, null),
   ('HA', 'Hammy',  'snowman',    2, null),

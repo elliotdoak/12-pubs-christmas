@@ -2,6 +2,7 @@
 //   { kind: 'alarm' }                 GM: "Drink up, we're leaving now", with each player's next pub
 //   { kind: 'announce' }              GM: the current announcement banner
 //   { kind: 'jail', player: 'HA' }    GM: tells that player they're in Sleepy Jail
+//   { kind: 'awards' }                GM: the crawl's over, the awards are in (everyone, Div too)
 //   { kind: 'leave' }                 pg_cron, every minute on game day: "10 mins left at ...", once per pub
 //   { kind: 'leave', pub: 2 }         test: sends pub 2's reminder now (skips the time window and the once-only check)
 // Messages are always built from the database, never taken from the request.
@@ -48,7 +49,7 @@ Deno.serve(async (req) => {
     const { data: { user } } = await asCaller.auth.getUser()
     if (user?.app_metadata?.role !== 'gm') return json({ ok: false, error: 'not_gm' }, 403)
   }
-  if (!['alarm', 'announce', 'jail', 'leave'].includes(kind)) return json({ ok: false, error: 'bad_kind' }, 400)
+  if (!['alarm', 'announce', 'jail', 'awards', 'leave'].includes(kind)) return json({ ok: false, error: 'bad_kind' }, 400)
   if (fromCron && kind !== 'leave') return json({ ok: false, error: 'not_gm' }, 403)
 
   const db = createClient(url, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!)
@@ -100,6 +101,11 @@ Deno.serve(async (req) => {
         url: '/map',
       }
     }
+  } else if (kind === 'awards') {
+    const { data: settings } = await db.from('settings').select('ended_at').eq('id', 1).single()
+    if (!settings?.ended_at) return json({ ok: false, error: 'not_ended' }, 400)
+    const msg: Message = { title: 'THE AWARDS ARE IN', body: "The crawl's over. Tap to see who won what.", tag: 'awards', url: '/scores' }
+    messageFor = () => msg
   } else {
     // Leave reminder: the pub whose warning window we're in, or the one asked for when testing
     const now = Date.now()
