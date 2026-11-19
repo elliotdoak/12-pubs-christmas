@@ -6,10 +6,10 @@ import { PHOTO_LIMIT, useSignedUrls } from '../lib/photos'
 import type { PhotoRow } from '../hooks/useGame'
 import { useGameCtx } from '../lib/game'
 import { useSession } from '../lib/session'
-import { BLINDFOLD_RULES, CREW, PAIRS, PLAYERS, SCORING, niceTime, pubByN, sprite } from '../data/crawl'
+import { BLINDFOLD_RULES, CREW, PAIRS, PLAYERS, SCORING, SECRET_MISSIONS, niceTime, pubByN, secretJobs, secretMission, sprite } from '../data/crawl'
 
 export function PubSheet({ n, onClose }: { n: number; onClose: () => void }) {
-  const { playerId } = useSession()
+  const { playerId, isGm } = useSession()
   const { game } = useGameCtx()
   const pub = pubByN(n)
   const mine = playerId ? game.visited[playerId] : new Set<number>()
@@ -22,6 +22,10 @@ export function PubSheet({ n, onClose }: { n: number; onClose: () => void }) {
   const reached = CREW.filter((p) => game.visited[p.id].has(n))
   const cuffs = n === 3 || n === 4
   const myGroup = playerId ? PAIRS.find((g) => g.includes(playerId)) : undefined
+  const secret = secretMission(playerId, n)
+  const jobs = secretJobs(playerId, n)
+  // The Game Master's phone also sees everyone else's missions here, to judge them
+  const gmSees = isGm ? SECRET_MISSIONS.filter((m) => m.pub === n && m.player !== playerId) : []
 
   const state = verdict === 'pass' ? 'YOU CLEARED IT' : verdict === 'fail' ? 'YOU FAILED IT' : here ? 'YOU ARE HERE' : unlocked ? 'UNLOCKED FOR YOU' : upNext ? 'UP NEXT' : 'LOCKED FOR YOU'
 
@@ -58,6 +62,22 @@ export function PubSheet({ n, onClose }: { n: number; onClose: () => void }) {
       {open ? (
         <div className="mx-4 mt-3 flex flex-col gap-3">
           <Box label="CHALLENGE" tone="pine">{pub.challenge}</Box>
+          {secret && (
+            <SecretBox title="SECRET MISSION" note="Only you and the Game Master can see this. Do it without anyone noticing and you pass. Get caught and you fail.">
+              {secret.mission}
+            </SecretBox>
+          )}
+          {gmSees.map((m) => (
+            <SecretBox key={`gm-${m.player}`} title={`${PLAYERS.find((p) => p.id === m.player)?.name.toUpperCase()}'S SECRET MISSION`} note="You see this because you're the Game Master. Not caught: PASS. Caught: FAIL. Keep it quiet.">
+              {m.mission}
+              {m.setup && <><br /><b>Set up:</b> {m.setup}</>}
+            </SecretBox>
+          ))}
+          {jobs.map((m) => (
+            <SecretBox key={m.player} title="SECRET JOB" note="Only you and the Game Master can see this. Don't give the game away.">
+              {m.helper!.job}
+            </SecretBox>
+          ))}
           <Box label="IF YOU FAIL…" tone="red">{pub.forfeit ?? 'No forfeit set for this pub. Pride is the only casualty.'}</Box>
           {pub.note && <Box label="NOTE" tone="royal">{pub.note}</Box>}
           {cuffs && (
@@ -100,6 +120,32 @@ function Box({ label, tone, children }: { label: string; tone: 'pine' | 'red' | 
     <div className="border-[3px] border-ink bg-white p-3">
       <div className={`mb-1 font-pix text-[9px] ${c}`}>{label}</div>
       <div className="text-[17px] leading-[22px]">{children}</div>
+    </div>
+  )
+}
+
+/**
+ * A secret mission, only on that player's phone. Hidden until tapped, so nobody reads it over
+ * their shoulder, and hidden again with one tap.
+ */
+function SecretBox({ title, note, children }: { title: string; note: string; children: React.ReactNode }) {
+  const [shown, setShown] = useState(false)
+  return (
+    <div className="border-[3px] border-ink bg-ink p-3 text-white">
+      <div className="flex items-center justify-between gap-2">
+        <span className="font-pix text-[9px] text-yolk">{title}</span>
+        <button type="button" onClick={() => setShown(!shown)} aria-expanded={shown} className="border-2 border-yolk px-2 py-1 font-pix text-[8px] text-yolk">
+          {shown ? 'HIDE' : 'TAP TO VIEW'}
+        </button>
+      </div>
+      {shown ? (
+        <>
+          <p className="m-0 mt-2 text-[17px] leading-[22px]">{children}</p>
+          <p className="m-0 mt-2 text-[14px] leading-[18px] text-[#D8D2C6]">{note}</p>
+        </>
+      ) : (
+        <p className="m-0 mt-2 text-[14px] leading-[18px] text-[#D8D2C6]">For your eyes only. Check nobody's looking.</p>
+      )}
     </div>
   )
 }

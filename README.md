@@ -49,6 +49,7 @@ To test on a phone on the same Wi-Fi: `npm run dev -- --host`, then open the net
 - **Automatic check-in.** The game checks you in when you're inside a pub's radius (50 m). To stop next-door pubs (Blackfriars and O'Neills are 16 m apart) checking you in early, each pub only opens 10 minutes before the previous pub's leave time.
 - **Crew check-in:** "who's with you?" lets you check in mates whose phones have died.
 - **Per-player unlocks.** A pub's challenge, forfeit and rules unlock when *you* reach it. Your **next** pub is open to look ahead (marked UP NEXT), but its photos wait until you arrive.
+- **Secret missions.** Gregor doesn't drink, so at the drinking challenges (pubs 1, 3, 4, 5 and 9) and at The Raven (10) his pub sheet has a covert mission, hidden until he taps to view it. Nobody else's phone shows it, except a crewmate who's in on it (Elz times the Raven speech), whose phone shows them a secret job. The GM gets PASS / FAIL for Gregor at The Raven, even though nobody else is judged there. Pull it off unnoticed and the GM passes him; get caught and he fails. The GM sees each mission, and any setup it needs, on the Results tab. Edit them in `SECRET_MISSIONS` in `src/data/crawl.ts`.
 - **Distance chip:** how far the next pub is from the one you're at.
 - **Handcuffs and blindfolds** (Blackfriars and O'Neills) show who you're cuffed to, with their name and sprite.
 - **Sleepy Jail:** tap the jail to see who's inside and since when.

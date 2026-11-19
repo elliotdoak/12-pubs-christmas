@@ -14,7 +14,7 @@ import { supabase } from '../lib/supabase'
 import { thumbPath } from '../lib/photos'
 import { sampleGame } from '../lib/awards'
 import { AwardsShow } from '../components/Awards'
-import { CREW, DRESSED, PLAYERS, PUBS, SCORING, at, clockTime, gameNow, niceTime, pubByN, setGameClock, startsAt, type PlayerId } from '../data/crawl'
+import { CREW, DRESSED, PLAYERS, PUBS, SCORING, SECRET_MISSIONS, secretMission, at, clockTime, gameNow, niceTime, pubByN, setGameClock, startsAt, type PlayerId } from '../data/crawl'
 
 export default function Gm() {
   const { isGm } = useSession()
@@ -382,7 +382,7 @@ function ResultsTab({ start, flash }: { start: number; flash: (m: string) => voi
   const notYet = CREW.filter((p) => !game.visited[p.id].has(n))
   const status = (id: PlayerId, here: boolean) => {
     if (!here) return 'Not here yet'
-    if (pub.judging === 'none') return 'Reached'
+    if (pub.judging === 'none' && !secretMission(id, n)) return 'Reached'
     if (pub.judging === 'dressed') {
       const b = dressedBonus(id)
       return b ? `${b.reason.replace(' at Press Bar', '')} · ${b.points > 0 ? '+' : ''}${b.points}` : 'Reached · not picked'
@@ -414,6 +414,15 @@ function ResultsTab({ start, flash }: { start: number; flash: (m: string) => voi
           <div className="font-pix text-[8px] text-pine">CHALLENGE</div>
           <div className="mt-1 text-[16px] leading-[20px]">{pub.challenge}</div>
           {pub.forfeit && <div className="mt-2 text-[14px] leading-[18px] text-red">Forfeit: {pub.forfeit}</div>}
+          {SECRET_MISSIONS.filter((m) => m.pub === n).map((m) => (
+            <div key={m.player} className="mt-3 border-2 border-ink bg-ink p-2 text-white">
+              <div className="font-pix text-[8px] text-yolk">SECRET MISSION · {name(m.player).toUpperCase()} ONLY</div>
+              <div className="mt-1 text-[15px] leading-[19px]">{m.mission}</div>
+              {m.setup && <div className="mt-1 text-[14px] leading-[18px] text-yolk">Set up: {m.setup}</div>}
+              {m.helper && <div className="mt-1 text-[14px] leading-[18px] text-yolk">In on it: {name(m.helper.player)} (their phone tells them their job)</div>}
+              <div className="mt-1 text-[13px] leading-[17px] text-[#B9B2A6]">Not caught: PASS. Caught: FAIL. Keep it quiet.</div>
+            </div>
+          ))}
         </div>
         <ul className="m-0 list-none p-0">
           {[...reached, ...notYet].map((p) => {
@@ -432,7 +441,7 @@ function ResultsTab({ start, flash }: { start: number; flash: (m: string) => voi
                     <Btn tone={d === DRESSED.best[0] ? 'yolk' : 'white'} pressed={d === DRESSED.best[0]} disabled={taken(p.id, 'best')} onClick={() => dressed(p.id, 'best')} label={`${p.name} best dressed`}>BEST</Btn>
                     <Btn tone={d === DRESSED.worst[0] ? 'red' : 'white'} pressed={d === DRESSED.worst[0]} disabled={taken(p.id, 'worst')} onClick={() => dressed(p.id, 'worst')} label={`${p.name} worst dressed`}>WORST</Btn>
                   </>
-                ) : !pub.judging && (
+                ) : (!pub.judging || !!secretMission(p.id, n)) && (
                   <>
                     <Btn tone={r === 'pass' ? 'pine' : 'white'} pressed={r === 'pass'} onClick={() => set(p.id, 'pass')} label={`${p.name} passed`}>PASS</Btn>
                     <Btn tone={r === 'fail' ? 'red' : 'white'} pressed={r === 'fail'} onClick={() => set(p.id, 'fail')} label={`${p.name} failed`}>FAIL</Btn>

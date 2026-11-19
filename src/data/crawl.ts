@@ -126,6 +126,58 @@ export const PUBS: Pub[] = [
   { n: 12, name: 'Supercube', arrive: '19:30', leave: '21:30', stay: 'Until 9.30pm', challenge: 'SING BABY SING!!', map: [60, 484], lat: 55.8649, lng: -4.2585, radius: R, address: '104 Bath Street, G2 2EN', approx: true },
 ]
 
+/**
+ * Secret missions: Gregor doesn't drink, so at the drinking challenges he gets a covert mission instead.
+ * Only he (and the Game Master) can see it. Pull it off without anyone noticing and he passes; get
+ * caught and he fails. The GM judges it with the normal PASS / FAIL buttons.
+ */
+export interface SecretMission {
+  player: PlayerId
+  pub: number
+  mission: string
+  /** What the organiser needs to sort out beforehand. GM only. */
+  setup?: string
+  /** A crewmate who's in on it. Their phone shows them this job at that pub. */
+  helper?: { player: PlayerId; job: string }
+}
+
+export const SECRET_MISSIONS: SecretMission[] = [
+  {
+    player: 'GR', pub: 1,
+    mission: "While everyone's watching the race, untie someone's shoelace. If they or anyone else catches you doing it, you fail.",
+  },
+  {
+    player: 'GR', pub: 3,
+    mission: "Hide something in your cuff partner's pocket or hood (a sweet, a beer mat, a sprout) before you leave. If they catch you doing it, you fail.",
+  },
+  {
+    player: 'GR', pub: 4,
+    mission: 'Work "Rudolph the Red-Nosed Reindeer" into the conversation 5 times before you leave. If anyone calls you out on it, you fail.',
+  },
+  {
+    player: 'GR', pub: 5,
+    mission: "Get someone to spank you on the bum without explicitly asking them to do it. If anyone twigs that you're setting it up, you fail.",
+  },
+  {
+    player: 'GR', pub: 9,
+    mission: "After the relay, convince people your shot of water was actually alcohol and the bar must have made a mistake. If they buy it, you pass. If they don't, you fail.",
+    setup: "Make sure Gregor's shot on his team's tray is water.",
+  },
+  {
+    player: 'GR', pub: 10,
+    mission: "Give everyone a 60-second speech. Keep going for the full minute without getting caught out. Elz is in on it and is timing you.",
+    helper: { player: 'EL', job: "Gregor's about to give everyone a 60-second speech. It's his secret mission, so keep it quiet and time him. Let the Game Master know if he made it to 60 seconds without getting caught out." },
+  },
+]
+
+export const secretMission = (player: PlayerId | null | undefined, pub: number) =>
+  player ? SECRET_MISSIONS.find((m) => m.player === player && m.pub === pub) : undefined
+/** Missions this player is helping with at this pub. */
+export const secretJobs = (player: PlayerId | null | undefined, pub: number) =>
+  player ? SECRET_MISSIONS.filter((m) => m.helper?.player === player && m.pub === pub) : []
+/** Whether a pass / fail counts for this player here: normal challenge pubs, plus any pub where they have a secret mission. */
+export const verdictCounts = (player: PlayerId, pub: number) => !pubByN(pub).judging || !!secretMission(player, pub)
+
 export const SCORING = {
   reachPub: 10,
   challengePassed: 15,

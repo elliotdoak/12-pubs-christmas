@@ -1,4 +1,4 @@
-import { CREW, PLAYERS, SCORING, pubByN, type PlayerId } from '../data/crawl'
+import { CREW, PLAYERS, SCORING, verdictCounts, type PlayerId } from '../data/crawl'
 import type { GameState } from '../hooks/useGame'
 
 export interface ScoreItem {
@@ -38,8 +38,9 @@ export function computeScores(game: GameState): Score[] {
     const pubs = game.visited[p.id].size
     if (pubs) items.push({ label: `${pubs} pub${pubs === 1 ? '' : 's'} reached`, points: pubs * SCORING.reachPub })
 
-    // Pubs with no pass / fail (or best / worst dressed instead) never score a verdict, even a stale one
-    const mine = game.results.filter((r) => r.player_id === p.id && !pubByN(r.pub_n).judging)
+    // Pubs with no pass / fail (or best / worst dressed instead) never score a verdict, even a stale one,
+    // unless it's for a secret mission there
+    const mine = game.results.filter((r) => r.player_id === p.id && verdictCounts(p.id, r.pub_n))
     const passed = mine.filter((r) => r.outcome === 'pass').length
     const failed = mine.length - passed
     if (passed) items.push({ label: `${passed} challenge${passed === 1 ? '' : 's'} passed`, points: passed * SCORING.challengePassed })

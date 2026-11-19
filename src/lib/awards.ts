@@ -1,4 +1,4 @@
-import { AWAY, CREW, DRESSED, PUBS, at, clockTime, pubByN, type PlayerId } from '../data/crawl'
+import { AWAY, CREW, DRESSED, PUBS, at, clockTime, pubByN, verdictCounts, type PlayerId } from '../data/crawl'
 import { deriveGame, type CheckinRow, type GameState, type JailRow, type PhotoRow, type ResultRow } from '../hooks/useGame'
 import { computeScores, type Score } from './scoring'
 
@@ -69,7 +69,7 @@ export function computeAwards(game: GameState): AwardsResult {
   add({ key: 'wanted', title: 'MOST WANTED', icon: 'tag', stat: `TAGGED IN ${plural(wanted?.v ?? 0, 'PHOTO')}`, quip: 'The face of the crawl, like it or not.' }, wanted)
 
   // Challenges: verdicts only count at pubs that have pass / fail
-  const verdicts = game.results.filter((r) => !pubByN(r.pub_n).judging)
+  const verdicts = game.results.filter((r) => verdictCounts(r.player_id, r.pub_n))
   const count = (id: PlayerId, o: ResultRow['outcome']) => verdicts.filter((r) => r.player_id === id && r.outcome === o).length
   const champ = best(crewMap((id) => count(id, 'pass')))
   add({ key: 'champ', title: 'CHALLENGE CHAMP', icon: 'star', stat: `${plural(champ?.v ?? 0, 'CHALLENGE')} PASSED`, quip: 'Did everything the Game Master asked. Suspicious.' }, champ)
