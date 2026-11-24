@@ -13,6 +13,7 @@ export interface ResultRow { player_id: PlayerId; pub_n: number; outcome: 'pass'
 export interface Settings { announcement: string | null; announced_at: string | null; reset_at?: string | null; alarm_at?: string | null; ended_at?: string | null }
 export interface BonusRow { id: number; player_id: PlayerId; points: number; reason: string; created_at: string }
 export interface PhotoRow { id: string; player_id: PlayerId; pub_n: number | null; path: string; caption: string | null; tagged: PlayerId[]; created_at: string }
+export interface ReactionRow { photo_id: string; player_id: PlayerId; emoji: string; created_at: string }
 export interface JailRow { player_id: PlayerId; last_pub: number | null; since: string; released_at: string | null }
 
 export interface GameState {
@@ -22,6 +23,8 @@ export interface GameState {
   jail: JailRow[]
   bonuses: BonusRow[]
   photos: PhotoRow[]
+  /** Emoji reactions on photos, one per person per photo */
+  reactions: ReactionRow[]
   settings: Settings
   /** Highest pub each player has reached (0 = not started) */
   lastPub: Record<PlayerId, number>
@@ -38,18 +41,20 @@ export function useGame(enabled = true): GameState {
   const [jail, setJail] = useState<JailRow[]>([])
   const [bonuses, setBonuses] = useState<BonusRow[]>([])
   const [photos, setPhotos] = useState<PhotoRow[]>([])
+  const [reactions, setReactions] = useState<ReactionRow[]>([])
   const [settings, setSettings] = useState<Settings>({ announcement: null, announced_at: null })
   const [loaded, setLoaded] = useState(false)
 
   const reload = useCallback(async () => {
     if (!supabase) return
-    const [c, r, j, s, b, ph] = await Promise.all([
+    const [c, r, j, s, b, ph, re] = await Promise.all([
       supabase.from('checkins').select('player_id,pub_n,at,source,by_player'),
       supabase.from('results').select('player_id,pub_n,outcome,set_at'),
       supabase.from('jail').select('player_id,last_pub,since,released_at'),
       supabase.from('settings').select('*').eq('id', 1).maybeSingle(),
       supabase.from('bonuses').select('id,player_id,points,reason,created_at').order('created_at'),
       supabase.from('photos').select('id,player_id,pub_n,path,caption,tagged,created_at').order('created_at', { ascending: false }),
+      supabase.from('photo_reactions').select('photo_id,player_id,emoji,created_at').order('created_at'),
     ])
     if (c.data) setCheckins(c.data as CheckinRow[])
     if (r.data) setResults(r.data as ResultRow[])
@@ -57,6 +62,7 @@ export function useGame(enabled = true): GameState {
     if (s.data) setSettings(s.data as Settings)
     if (b.data) setBonuses(b.data as BonusRow[])
     if (ph.data) setPhotos(ph.data as PhotoRow[])
+    if (re.data) setReactions(re.data as ReactionRow[])
     setLoaded(true)
   }, [])
 
@@ -73,6 +79,7 @@ export function useGame(enabled = true): GameState {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'settings' }, reload)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'bonuses' }, reload)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'photos' }, reload)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'photo_reactions' }, reload)
       .subscribe()
     // Belt and braces: refetch when the app comes back to the foreground, and every minute.
     const vis = () => document.visibilityState === 'visible' && reload()
@@ -86,16 +93,16 @@ export function useGame(enabled = true): GameState {
   }, [reload, enabled])
 
   return useMemo(
-    () => deriveGame({ checkins, results, jail, bonuses, photos, settings }, loaded, reload),
-    [loaded, checkins, results, jail, bonuses, photos, settings, reload],
+    () => deriveGame({ checkins, results, jail, bonuses, photos, reactions, settings }, loaded, reload),
+    [loaded, checkins, results, jail, bonuses, photos, reactions, settings, reload],
   )
 }
 
-export type GameRows = Pick<GameState, 'checkins' | 'results' | 'jail' | 'bonuses' | 'photos' | 'settings'>
+export type GameRows = Pick<GameState, 'checkins' | 'results' | 'jail' | 'bonuses' | 'photos' | 'settings'> & { reactions?: ReactionRow[] }
 
 /** Work out who's been where and who's in jail from the raw rows. Also used for the awards preview's sample data. */
 export function deriveGame(rows: GameRows, loaded = true, reload: () => Promise<void> = async () => {}): GameState {
-  const { checkins, results, jail, bonuses, photos, settings } = rows
+  const { checkins, results, jail, bonuses, photos, settings, reactions = [] } = rows
   const visited = Object.fromEntries(PLAYERS.map((p) => [p.id, new Set<number>()])) as Record<PlayerId, Set<number>>
   for (const c of checkins) visited[c.player_id]?.add(c.pub_n)
   const lastPub = Object.fromEntries(PLAYERS.map((p) => [p.id, Math.max(0, ...visited[p.id])])) as Record<PlayerId, number>
@@ -107,7 +114,7 @@ export function deriveGame(rows: GameRows, loaded = true, reload: () => Promise<
   )
   const resMap = new Map(results.map((r) => [`${r.player_id}:${r.pub_n}`, r.outcome]))
   return {
-    loaded, checkins, results, jail, bonuses, photos, settings, lastPub, visited, inJail, reload,
+    loaded, checkins, results, jail, bonuses, photos, reactions, settings, lastPub, visited, inJail, reload,
     result: (p: PlayerId, n: number) => resMap.get(`${p}:${n}`),
   }
 }

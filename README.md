@@ -63,6 +63,7 @@ To test on a phone on the same Wi-Fi: `npm run dev -- --host`, then open the net
 
 ### Photos
 - **Photo wall.** Up to 3 photos per person per pub. Pub photos also show on that pub's sheet.
+- **Reactions.** Open a photo and tap 🔥 ❤️ 😂 😮 😈 🍻 or 🎄, WhatsApp style: one reaction each, tap another to swap, tap yours again to take it off. The wall shows a bubble with the top emojis and a count, and the photo shows who reacted with what. Reactions don't score points.
 
 ### Fame
 - **Hall of Fame:** every year's costume, from the real photos, tap to zoom.
