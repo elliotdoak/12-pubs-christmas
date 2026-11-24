@@ -31,8 +31,21 @@ export default function Photos() {
       <header className="flex flex-col gap-2 px-[18px] pb-3 pt-4">
         <div className="font-pix text-[10px] text-yolk">THE CREW'S CAMERA ROLL</div>
         <h1 className="m-0 font-pix text-[22px] leading-[28px] text-white [text-shadow:3px_3px_0_var(--color-ink)]">PHOTO WALL</h1>
+        <p className="m-0 text-[16px] leading-[20px] text-blush">
+          {visible.length} photo{visible.length === 1 ? '' : 's'} on the wall
+        </p>
+        {/* Points in the heading font: the body font's 5 reads as a 9 at this size */}
+        <div className="flex flex-wrap items-center gap-2" aria-label={`Points per pub: ${SCORING.photo.map((p, i) => `${['1st', '2nd', '3rd'][i]} photo ${p}`).join(', ')}`}>
+          {SCORING.photo.map((pts, i) => (
+            <span key={i} className="flex items-center gap-[6px] border-2 border-ink bg-ink px-2 py-[5px]">
+              <span className="font-pix text-[8px] text-wool">{['1ST', '2ND', '3RD'][i]}</span>
+              <span className="font-pix text-[11px] text-yolk">+{pts}</span>
+            </span>
+          ))}
+          <span className="text-[15px] leading-[19px] text-blush">points per pub</span>
+        </div>
         <p className="m-0 text-[15px] leading-[19px] text-blush">
-          {visible.length} photo{visible.length === 1 ? '' : 's'} · +{SCORING.photo.join(' / +')} points for your 1st / 2nd / 3rd photo at each pub
+          Post 3 photos minimum at every pub to maximise your points. Real photos only: spam shots lose you points.
         </p>
       </header>
 
